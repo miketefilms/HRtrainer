@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hrvatski A1 — Trainer</title>
+<style>
+  :root{ /* Pergament (hell) — Default-Theme, alle Variablen konkret (keine Selbstreferenzen) */
+    --bg:#eef0f3; --bg-top:#f4f5f8; --bg2:#f1f3f6; --surface:#fff; --card:#fff;
+    --ink:#1a212e; --ink2:#3a4250; --muted:#69727f; --line:#e2e5ea;
+    --ghost:#eceef2; --ghost-h:#e3e6ec; --track:#e6e9ef; --key-border:#d4d9e1;
+    --brand:#9b1c2e; --brand-soft:#faf2f3; --brand-ink:#7d1623;
+    --teal:#0f766e; --teal-soft:#e6f3f1;
+    --green:#15803d; --green-soft:#e9f5ed; --green-ink:#14622f;
+    --amber:#b45309; --amber-soft:#fbf2e7; --amber-ink:#8a3f07;
+    --gold:#c98a14; --shadow:0 10px 26px rgba(20,25,40,.05);
+    --mono:"DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Liberation Sans",sans-serif;
+  }
+  [data-theme="sepia"]{
+    --bg:#efe7da; --bg-top:#f6efe3; --bg2:#f3ecdf; --surface:#fbf6ee; --card:#fdfaf4;
+    --ink:#3a3229; --ink2:#5c5142; --muted:#8a7d6a; --line:#e2d7c4;
+    --ghost:#ece2d2; --ghost-h:#e3d7c3; --track:#e6dccb; --key-border:#d8cbb4;
+    --brand:#a23b2e; --brand-soft:#f3e4df; --brand-ink:#7d2a20;
+    --teal:#2f7d6b; --teal-soft:#e6f0ea;
+    --green:#5b7d3a; --green-soft:#edf0e2; --green-ink:#3f5a25;
+    --amber:#a9701f; --amber-soft:#f3e9d6; --amber-ink:#7a4f12;
+    --gold:#b8851f; --shadow:0 10px 26px rgba(80,60,30,.08);
+  }
+  [data-theme="nacht"]{
+    --bg:#15171c; --bg-top:#1b1e25; --bg2:#1e2128; --surface:#21252d; --card:#1b1e24;
+    --ink:#e8eaed; --ink2:#c2c7cf; --muted:#9098a3; --line:#2c313a;
+    --ghost:#262b33; --ghost-h:#2f343d; --track:#2c313a; --key-border:#3a404a;
+    --brand:#e0566b; --brand-soft:#3a1f25; --brand-ink:#f0a5b0;
+    --teal:#3fb6a8; --teal-soft:#16302d;
+    --green:#4ade80; --green-soft:#16301f; --green-ink:#7ee0a3;
+    --amber:#e0a64b; --amber-soft:#33260f; --amber-ink:#f0c98a;
+    --gold:#e0b341; --shadow:0 10px 26px rgba(0,0,0,.45);
+  }
+  [data-theme="ozean"]{
+    --bg:#0e1622; --bg-top:#142233; --bg2:#15212f; --surface:#18293a; --card:#13202e;
+    --ink:#e6edf5; --ink2:#bcccdb; --muted:#8398ad; --line:#243345;
+    --ghost:#1c2c3d; --ghost-h:#243648; --track:#243345; --key-border:#314358;
+    --brand:#e8657f; --brand-soft:#33202a; --brand-ink:#f4a9bd;
+    --teal:#34c0d4; --teal-soft:#0e2d33;
+    --green:#3ddc97; --green-soft:#0f2e25; --green-ink:#7eecbf;
+    --amber:#e8b04b; --amber-soft:#332912; --amber-ink:#f3cf8c;
+    --gold:#e8c452; --shadow:0 10px 26px rgba(0,0,0,.5);
+  }
+  /* Theme-Picker + Ring */
+  .status{position:relative}
+  .themebtn{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);cursor:pointer;
+    padding:0;flex:0 0 auto;background:linear-gradient(135deg,var(--brand) 50%,var(--teal) 50%)}
+  .themepop{position:absolute;top:34px;left:0;z-index:20;background:var(--card);border:1px solid var(--line);
+    border-radius:13px;padding:9px;display:flex;gap:7px;box-shadow:var(--shadow)}
+  .swatch{width:30px;height:30px;border-radius:9px;border:2px solid transparent;cursor:pointer;padding:0}
+  .swatch[aria-pressed="true"]{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-soft)}
+  #ring .ring-track{stroke:var(--track)} #ringFill{stroke:var(--teal)}
+  .ring-pct{fill:var(--ink)} .ring .lab{fill:var(--muted)}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:radial-gradient(130% 70% at 50% -10%,var(--bg-top),var(--bg)) fixed;
+    color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;
+    padding:14px 13px 40px}
+  .wrap{max-width:600px;margin:0 auto}
+  .hidden{display:none!important}
+
+  /* status bar */
+  .status{display:flex;gap:8px;align-items:center;margin:4px 2px 14px}
+  .brandmark{font-weight:800;font-size:15px;letter-spacing:-.3px}
+  .brandmark .x{color:var(--brand)}
+  .status .spacer{flex:1}
+  .pill{font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;
+    background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;gap:5px}
+  .pill.streak{color:var(--gold)} .pill.due{color:var(--teal)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 1px 2px rgba(20,25,40,.04),var(--shadow);padding:18px}
+
+  h1{font-size:24px;font-weight:800;letter-spacing:-.5px;margin:2px 0 3px}
+  .lede{color:var(--muted);font-size:13.5px;margin:0 0 4px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--brand);font-weight:700}
+
+  /* dashboard */
+  .ring-row{display:flex;align-items:center;gap:16px;margin:14px 0 4px}
+  .ring{flex:0 0 auto}
+  .ring .lab{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+  .dash-stats{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{background:var(--bg2);border-radius:11px;padding:9px 11px}
+  .stat .n{font-family:var(--mono);font-weight:700;font-size:18px;line-height:1}
+  .stat .l{font-size:11px;color:var(--muted);margin-top:2px}
+  .stat.due .n{color:var(--teal)} .stat.streak .n{color:var(--gold)}
+
+  .cta{margin-top:14px}
+  .btn{border:0;border-radius:12px;font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;
+    padding:14px 18px;transition:.14s;line-height:1.2}
+  .btn-primary{background:var(--brand);color:#fff;box-shadow:0 2px 12px rgba(155,28,46,.26)}
+  .btn-primary:hover{filter:brightness(1.06)}
+  .btn-primary:disabled{background:#cdb6b9;box-shadow:none;cursor:default}
+  .btn-ghost{background:var(--ghost);color:var(--ink)} .btn-ghost:hover{background:var(--ghost-h)}
+  .btn-block{width:100%}
+  .btn-lg{font-size:16px;padding:15px}
+
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .mode{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;
+    background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:12px 13px;cursor:pointer;transition:.13s}
+  .mode:hover{border-color:var(--teal);background:var(--surface)}
+  .mode .ic{font-size:18px}
+  .mode .t{font-weight:700;font-size:13.5px}
+  .mode .d{font-size:11px;color:var(--muted)}
+  .mode:disabled{opacity:.5;cursor:default}
+
+  .row-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .link{background:none;border:0;color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;
+    text-decoration:underline;text-underline-offset:2px;padding:4px 0}
+  .link.teal{color:var(--teal)}
+
+  /* info / settings panels */
+  .panel{margin-top:12px;background:var(--bg2);border-radius:13px;padding:14px}
+  .panel h3{margin:0 0 6px;font-size:13px}
+  .panel p,.panel li{font-size:12.5px;color:var(--ink2);margin:4px 0}
+  .panel ul{padding-left:18px;margin:6px 0}
+  .field{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:9px 0}
+  .field label{font-size:13px;font-weight:600}
+  .stepper{display:flex;align-items:center;gap:8px}
+  .stepper button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+    font-size:16px;cursor:pointer;font-weight:700;color:var(--ink)}
+  .stepper .v{font-family:var(--mono);font-weight:700;min-width:24px;text-align:center}
+  textarea.io{width:100%;height:70px;font-family:var(--mono);font-size:11px;border:1px solid var(--line);
+    border-radius:9px;padding:8px;resize:vertical}
+
+  /* session header */
+  .shead{display:flex;align-items:center;gap:10px;margin:0 2px 6px}
+  .shead .x{background:none;border:0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:2px 4px}
+  .shead .title{font-weight:700;font-size:14px;flex:1}
+  .bar{height:7px;background:var(--track);border-radius:99px;overflow:hidden;margin:0 2px 14px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),#16a394);width:0;transition:width .3s}
+
+  /* exercise card */
+  .ex{min-height:140px}
+  .tag-skill{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+    font-weight:700;color:var(--teal);margin-bottom:9px}
+  .tag-skill.new{color:var(--brand)}
+  .prompt-de{font-size:23px;font-weight:700;letter-spacing:-.3px;margin:2px 0 4px}
+  .prompt-sub{font-size:13px;color:var(--muted);margin-bottom:6px}
+  .emoji{font-size:40px;line-height:1;margin:2px 0 6px}
+  .reveal{font-size:24px;font-weight:800;color:var(--teal);margin:10px 0 2px}
+  .reveal .pos{font-size:12px;color:var(--muted);font-weight:600;margin-left:8px}
+
+  textarea.answer{width:100%;color:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:12px 13px;
+    font-family:var(--sans);font-size:18px;resize:none;line-height:1.35}
+  textarea.answer:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}
+  textarea.answer:disabled{background:var(--bg2);color:var(--muted)}
+
+  /* keycaps */
+  .keys{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 2px}
+  .key{font-family:var(--mono);font-size:17px;font-weight:600;width:40px;height:44px;border:1px solid var(--key-border);
+    border-bottom-width:3px;border-radius:9px;background:var(--surface);color:var(--ink);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:transform .04s}
+  .key:hover{border-color:var(--teal);color:var(--teal)}
+  .key:active{transform:translateY(2px);border-bottom-width:1px}
+  .key.shift{font-size:11px;width:auto;padding:0 11px;background:var(--ghost);color:var(--muted)}
+  .key.shift[aria-pressed="true"]{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  /* MC / choices */
+  .choices{display:grid;gap:8px;margin-top:4px}
+  .choice{text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:13px 15px;
+    font-size:16px;font-weight:600;cursor:pointer;transition:.12s}
+  .choice:hover{border-color:var(--teal)}
+  .choice.correct{border-color:var(--green);background:var(--green-soft);color:var(--green-ink)}
+  .choice.wrong{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-ink)}
+  .choice:disabled{cursor:default}
+
+  /* genus */
+  .genus{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px}
+  .genus .choice{text-align:center;font-family:var(--mono)}
+
+  /* build tiles */
+  .build-target{min-height:48px;border:1.5px dashed var(--key-border);border-radius:12px;padding:8px;display:flex;
+    flex-wrap:wrap;gap:6px;margin-bottom:10px;align-content:flex-start}
+  .build-bank{display:flex;flex-wrap:wrap;gap:6px}
+  .tile{border:1px solid var(--key-border);background:var(--surface);border-radius:9px;padding:9px 12px;font-size:15px;
+    font-weight:600;cursor:pointer;transition:.1s}
+  .tile:hover{border-color:var(--teal)}
+  .tile.used{opacity:.32;pointer-events:none}
+  .build-target .tile{background:var(--teal-soft);border-color:#bfe0db}
+
+  /* match */
+  .match{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+  .match .col{display:flex;flex-direction:column;gap:8px}
+  .mbtn{border:1.5px solid var(--line);background:var(--surface);border-radius:11px;padding:12px;font-size:14.5px;
+    font-weight:600;cursor:pointer;transition:.1s}
+  .mbtn:hover{border-color:var(--teal)}
+  .mbtn.sel{border-color:var(--teal);background:var(--teal-soft)}
+  .mbtn.done{border-color:var(--green);background:var(--green-soft);color:var(--green-ink);pointer-events:none}
+  .mbtn.miss{border-color:var(--brand);background:var(--brand-soft);animation:shake .3s}
+  @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+  /* feedback + grade */
+  .fb{margin-top:12px;border-radius:12px;padding:11px 13px;font-size:14px;display:none}
+  .fb.show{display:block}
+  .fb .t{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    display:block;margin-bottom:3px}
+  .fb.ok{background:var(--green-soft);color:var(--green-ink)}.fb.ok .t{color:var(--green)}
+  .fb.near{background:var(--amber-soft);color:var(--amber-ink)}.fb.near .t{color:var(--amber)}
+  .fb.no{background:var(--brand-soft);color:var(--brand-ink)}.fb.no .t{color:var(--brand)}
+  .fb .sol{font-weight:800}
+  .fb .alt{font-size:12px;color:var(--muted);margin-top:3px}
+  .hintline{margin-top:8px;font-size:12.5px;color:var(--muted)}
+  .hintline b{color:var(--ink)}
+
+  .controls{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+  .controls .btn{flex:1;min-width:120px;padding:13px}
+  .grade{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-top:12px}
+  .grade button{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:11px 6px;cursor:pointer;
+    font-weight:700;font-size:13px;display:flex;flex-direction:column;gap:1px;transition:.12s}
+  .grade button small{font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--muted)}
+  .grade button:hover{border-color:var(--teal)}
+  .grade .again{color:var(--brand)} .grade .easy{color:var(--green)}
+
+  /* summary */
+  .summary{text-align:center;padding:6px 4px}
+  .summary .big{font-family:var(--mono);font-size:40px;font-weight:700;color:var(--teal);letter-spacing:-1px}
+  .summary .sub{color:var(--muted);font-size:14px;margin:3px 0 16px}
+
+  .tiny{font-size:11px;color:var(--muted);text-align:center;margin-top:14px}
+  @media (max-width:420px){ h1{font-size:21px} .prompt-de{font-size:20px} .modes{grid-template-columns:1fr}
+    .grade{grid-template-columns:1fr 1fr} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  /* Dark-Fixes + Erklaer-Panel */
+  :root{color-scheme:light}
+  [data-theme="sepia"]{color-scheme:light}
+  [data-theme="nacht"],[data-theme="ozean"]{color-scheme:dark}
+  input,textarea,select{color:var(--ink)}
+  .explainbox{margin-top:11px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+  .explainbox .why{font-size:13.5px;color:var(--ink2);margin:0}
+  .explainbox .why b{color:var(--ink)} .explainbox .why+ table{margin-top:9px}
+  .explainbox code{font-family:var(--mono);font-size:12px;background:var(--ghost);padding:1px 5px;border-radius:5px;color:var(--ink)}
+  .explainbox .caserole{margin-top:9px;font-size:12.5px;color:var(--ink2);background:var(--teal-soft);border-left:3px solid var(--teal);border-radius:8px;padding:8px 10px}
+  .explainbox .caserole b{color:var(--teal)}
+  .sellist{display:flex;flex-direction:column;gap:7px;margin:10px 0 4px}
+  .selopt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid var(--line);
+    background:var(--surface);border-radius:12px;padding:11px 13px;cursor:pointer;color:var(--ink);transition:.12s}
+  .selopt:hover{border-color:var(--teal)}
+  .selopt.on{border-color:var(--teal);background:var(--teal-soft)}
+  .selopt .selcheck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--key-border);
+    display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex:0 0 auto}
+  .selopt.on .selcheck{border-color:var(--teal);background:var(--teal)}
+  .selopt .sellabel{flex:1;font-weight:600;font-size:14px}
+  .selopt .selnum{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--bg2);padding:2px 9px;border-radius:99px}
+  table.conj{width:100%;border-collapse:collapse}
+  table.conj caption{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:5px}
+  table.conj td{padding:5px 8px;border-bottom:1px solid var(--line);color:var(--ink);font-size:13.5px}
+  table.conj tr:last-child td{border-bottom:0}
+  table.conj td.p{font-family:var(--mono);color:var(--muted);width:40%}
+  table.conj td.f{font-weight:700} table.conj td.f b{color:var(--teal)}
+  /* Grammatik-Datenbank */
+  .glist{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px}
+  .gsec-btn{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:1.5px solid var(--line);
+    background:var(--surface);border-radius:13px;padding:12px 14px;cursor:pointer;color:var(--ink);transition:.12s}
+  .gsec-btn:hover{border-color:var(--teal);background:var(--teal-soft)}
+  .gsec-btn .gic{font-size:20px;flex:0 0 auto}
+  .gsec-btn .gt{font-weight:700;font-size:14.5px}
+  .gsec-btn .gd{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+  .gblock{margin:12px 0}
+  .gblock .gp{font-size:13.5px;color:var(--ink2);line-height:1.55;margin:0}
+  .gblock .gp b{color:var(--ink)} .gblock .gp code{font-family:var(--mono);background:var(--ghost);padding:1px 5px;border-radius:5px;font-size:12px}
+  .gformula{display:block;background:var(--ghost);border-left:3px solid var(--teal);border-radius:8px;
+    padding:9px 11px;font-family:var(--mono);font-size:12.5px;color:var(--ink);margin:0;white-space:pre-wrap;overflow-x:auto}
+  table.gtable{width:100%;border-collapse:collapse;margin:2px 0;font-size:12.5px}
+  table.gtable caption{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:5px}
+  table.gtable th{text-align:left;font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:700;padding:4px 7px;border-bottom:1.5px solid var(--line)}
+  table.gtable td{padding:5px 7px;border-bottom:1px solid var(--line);color:var(--ink)}
+  table.gtable td:first-child{font-family:var(--mono);color:var(--ink2)}
+  table.gtable tr:last-child td{border-bottom:0} table.gtable i{color:var(--teal);font-style:normal}
+  .gcontrast{border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:8px 0;background:var(--bg2)}
+  .gcontrast h4{margin:0 0 1px;font-size:14px;font-family:var(--mono);color:var(--teal)}
+  .gcontrast .gcs{font-size:11.5px;color:var(--muted);margin-bottom:6px}
+  .gcontrast .gcrow{display:grid;grid-template-columns:minmax(72px,auto) 1fr;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+  .gcontrast .gcform{font-family:var(--mono);font-weight:700;color:var(--ink);font-size:13px}
+  .gcontrast .gcrole{font-size:12px;color:var(--ink2)} .gcontrast .gcrole .ex{display:block;color:var(--muted);margin-top:1px}
+  .gcontrast .gcrole i{font-style:normal;color:var(--teal);font-weight:600}
+  .gcontrast .gcrule{margin-top:8px;font-size:11.5px;color:var(--ink2);font-family:var(--mono);line-height:1.5}
+  .gcontrast .gcrule code{background:var(--ghost);padding:1px 4px;border-radius:4px}
+  .explainbox .glink{margin-top:9px}
+  .explainbox .glink button{background:none;border:0;color:var(--teal);font-weight:700;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="status">
+    <span class="brandmark">hrvatski<span class="x">.</span>a1</span>
+    <button class="themebtn" id="themeBtn" title="Farbmodus" aria-label="Farbmodus"></button>
+    <div class="themepop hidden" id="themePop"></div>
+    <span class="spacer"></span>
+    <span class="pill streak" id="pillStreak" title="Lern-Streak">🔥 <span id="streakN">0</span></span>
+    <span class="pill due" id="pillDue" title="heute fällig">↻ <span id="dueN">0</span></span>
+  </div>
+
+  <!-- ============ HOME ============ -->
+  <section id="home" class="card">
+    <div class="eyebrow">A1 · Spaced-Retrieval-Trainer</div>
+    <h1 id="greet">Dobar dan!</h1>
+    <p class="lede">Täglich kurz, mit Abstandswiederholung und aktivem Abruf. Genau die Basics, in der richtigen Reihenfolge.</p>
+
+    <div class="ring-row">
+      <svg class="ring" width="92" height="92" viewBox="0 0 92 92" id="ring">
+        <circle class="ring-track" cx="46" cy="46" r="40" fill="none" stroke-width="9"/>
+        <circle id="ringFill" cx="46" cy="46" r="40" fill="none" stroke-width="9"
+          stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251" transform="rotate(-90 46 46)"/>
+        <text x="46" y="43" text-anchor="middle" font-size="20" font-weight="800" id="ringPct" class="ring-pct">0%</text>
+        <text x="46" y="58" text-anchor="middle" class="lab">beherrscht</text>
+      </svg>
+      <div class="dash-stats">
+        <div class="stat due"><div class="n" id="sDue">0</div><div class="l">fällig heute</div></div>
+        <div class="stat"><div class="n" id="sLearned">0</div><div class="l">gelernt</div></div>
+        <div class="stat streak"><div class="n" id="sStreak">0</div><div class="l">Tage-Streak</div></div>
+        <div class="stat"><div class="n" id="sTotal">0</div><div class="l">Items gesamt</div></div>
+      </div>
+    </div>
+
+    <div class="cta">
+      <button class="btn btn-primary btn-block btn-lg" id="startDaily">Tagesrunde starten</button>
+    </div>
+
+    <div class="modes">
+      <button class="mode" data-mode="vocab"><span class="ic">🗂️</span><span class="t">Vokabeln</span><span class="d">Wörter & Wendungen</span></button>
+      <button class="mode" data-mode="grammar"><span class="ic">🧩</span><span class="t">Grammatik</span><span class="d">Endungen, Genus, biti</span></button>
+      <button class="mode" data-mode="dialog"><span class="ic">💬</span><span class="t">Dialoge</span><span class="d">im Kontext anwenden</span></button>
+      <button class="mode" data-mode="quick"><span class="ic">⚡</span><span class="t">Schnellrunde</span><span class="d">6 Karten</span></button>
+      <button class="mode" data-mode="weak"><span class="ic">🩹</span><span class="t">Fehler wiederholen</span><span class="d">deine Schwachstellen</span></button>
+      <button class="mode" data-mode="review"><span class="ic">↻</span><span class="t">Nur Wiederholung</span><span class="d">keine neuen Items</span></button>
+    </div>
+
+    <div class="row-links">
+      <button class="link teal" id="openGrammar">📚 Grammatik-Datenbank</button>
+      <button class="link" id="openInfo">Wie das funktioniert</button>
+      <button class="link" id="openSettings">Einstellungen & Daten</button>
+    </div>
+
+    <div class="panel hidden" id="infoPanel">
+      <h3>Die Methode (evidenzbasiert)</h3>
+      <ul>
+        <li><b>Spaced Retrieval:</b> Jede Karte kommt wieder, kurz bevor du sie vergisst — wachsende Abstände (Leitner).</li>
+        <li><b>Aktiver Abruf:</b> Du produzierst die Antwort selbst. Schwierigkeit steigt mit Beherrschung: erst Auswahl, dann Tippen, dann freier Abruf.</li>
+        <li><b>Produktion zählt mehr:</b> Tippen, Lücken und Satzbau zählen voll; reines Wiedererkennen (Auswahl, Paare) zählt weniger. „Beherrscht“ wirst du erst mit echtem Produktions-Beleg — die Quote bleibt ehrlich.</li>
+        <li><b>Fehler-Reparatur:</b> Falsch beantwortete Items kommen in derselben Runde nochmal aktiv dran. Der Modus „Fehler wiederholen“ sammelt deine Schwachstellen.</li>
+        <li><b>Hochfrequenz zuerst:</b> Die nützlichsten Wörter und Wendungen kommen zuerst (Pareto/Zipf).</li>
+        <li><b>Chunks & Interleaving:</b> Ganze Wendungen statt Einzelwörter; Formate und Themen mischen sich in jeder Runde.</li>
+      </ul>
+      <p>Realistisch: kein Wunder in Tagen — aber ~10–15 Min täglich sind effizienter als stundenlanges Pauken am Stück.</p>
+    </div>
+
+    <div class="panel hidden" id="settingsPanel">
+      <div class="field">
+        <label>Neue Items pro Runde</label>
+        <div class="stepper"><button id="newMinus">–</button><span class="v" id="newVal">8</span><button id="newPlus">+</button></div>
+      </div>
+      <div class="field">
+        <label>Dialog am Ende der Tagesrunde</label>
+        <div class="stepper"><button id="applyToggle" style="width:auto;padding:0 12px">an</button></div>
+      </div>
+      <h3 style="margin-top:12px">Fortschritt</h3>
+      <p id="saveInfo">Dein Fortschritt wird automatisch in einer Datei neben dem Programm gespeichert (<b>hrvatski_fortschritt.json</b>) — kein Export/Import nötig.</p>
+      <div class="row-links">
+        <button class="link" id="exportBtn">Sichern (Export)</button>
+        <button class="link" id="importBtn">Wiederherstellen (Import)</button>
+        <button class="link" id="diagBtn">Selbsttest</button>
+        <button class="link" id="resetBtn" style="color:var(--brand)">Fortschritt zurücksetzen</button>
+      </div>
+      <textarea class="io hidden" id="ioArea" placeholder="Fortschritt als JSON — kopieren zum Sichern, einfügen + „Übernehmen" zum Wiederherstellen." spellcheck="false"></textarea>
+      <div class="row-links hidden" id="ioControls"><button class="link teal" id="ioApply">Übernehmen</button><button class="link" id="ioClose">Schließen</button></div>
+      <div class="panel hidden" id="diagPanel" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ============ SESSION ============ -->
+  <section id="session" class="card hidden">
+    <div class="shead">
+      <button class="x" id="sessExit" title="Beenden">←</button>
+      <span class="title" id="sessTitle">Tagesrunde</span>
+      <span class="pill" id="sessPos" style="font-size:10px">0/0</span>
+    </div>
+    <div class="bar"><i id="sessBar"></i></div>
+    <div class="ex" id="exArea"></div>
+  </section>
+
+  <!-- ============ DIALOG ============ -->
+  <section id="dialog" class="card hidden">
+    <div class="shead">
+      <button class="x" id="dlgExit" title="Beenden">←</button>
+      <span class="title" id="dlgTitle">Dialog</span>
+      <span class="pill" id="dlgPos" style="font-size:10px"></span>
+    </div>
+    <p class="prompt-sub" id="dlgScene" style="margin:0 2px 10px;font-style:italic"></p>
+    <div id="dlgTranscript" style="display:flex;flex-direction:column;gap:9px"></div>
+    <div id="dlgArea"></div>
+  </section>
+
+  <!-- ============ AUSWAHL ============ -->
+  <section id="select" class="card hidden">
+    <div class="shead">
+      <button class="x" id="selExit" title="Zurück">←</button>
+      <span class="title" id="selTitle">Auswahl</span>
+      <span class="pill" id="selCount" style="font-size:10px"></span>
+    </div>
+    <p class="lede" id="selLede" style="margin-top:0"></p>
+    <div id="selList" class="sellist"></div>
+    <div class="controls" style="margin-top:6px">
+      <button class="btn btn-ghost" id="selAll">Alle</button>
+      <button class="btn btn-primary" id="selStart" style="flex:2">Üben starten</button>
+    </div>
+  </section>
+
+  <!-- ============ GRAMMATIK-DB ============ -->
+  <section id="grammar" class="card hidden">
+    <div class="shead">
+      <button class="x" id="gExit" title="Zurück">←</button>
+      <span class="title" id="gTitle">Grammatik-Datenbank</span>
+      <span class="pill" id="gPos" style="font-size:10px"></span>
+    </div>
+    <p class="lede" id="gLede" style="margin-top:0">Nachschlagewerk — Grammatik als Lookup, Formel und Tabelle. Tippe einen Bereich an.</p>
+    <div id="gBody"></div>
+  </section>
+
+  <p class="tiny" id="storageNote"></p>
+</div>
+
+<script>
+/* ===================================================================== */
+/* DATEN — A1, hochfrequenz-orientiert                                    */
+/* ===================================================================== */
+// vocab: {id,type:'vocab',de,hr:[canon,...alts],g?,emoji?,pos?,tags}
+// chunk: {id,type:'chunk',de,hr:[...],tags}
+// fill : {id,type:'fill',de,sentence(mit ___),hr:[answer,...],hint,tags}
+const RAW = {
+ vocab:[
+  // Funktionswörter / hochfrequent
+  ["da","ja","da",,,, "func"],["ne","nein / nicht","ne",,,,"func"],["i","und","i",,,,"func"],
+  ["ali","aber","ali",,,,"func"],["ili","oder","ili",,,,"func"],["ovo","das (hier)","ovo",,,,"func"],
+  ["molim","bitte","molim",,,,"func"],["hvala","danke","hvala",,,,"func"],["dobro","gut (Adv.)","dobro",,,,"func"],
+  ["danas","heute","danas",,,,"func"],["sutra","morgen","sutra",,,,"func"],["sada","jetzt","sada|sad",,,,"func"],
+  ["vrlo","sehr","vrlo|jako",,,,"func"],["malo","wenig","malo",,,,"func"],["puno","viel","puno|mnogo",,,,"func"],
+  // Fragewörter
+  ["tko","wer","tko",,,,"q"],["sto","was","što",,,,"q"],["gdje","wo","gdje",,,,"q"],
+  ["kako","wie","kako",,,,"q"],["kada","wann","kada|kad",,,,"q"],["zasto","warum","zašto",,,,"q"],
+  ["koliko","wie viel","koliko",,,,"q"],
+  // Pronomen
+  ["ja","ich","ja",,,,"pron"],["ti","du","ti",,,,"pron"],["on","er","on",,,,"pron"],
+  ["ona","sie","ona",,,,"pron"],["mi","wir","mi",,,,"pron"],["vi","ihr / Sie","vi",,,,"pron"],
+  ["oni","sie (Pl.)","oni",,,,"pron"],
+  // Zahlen
+  ["nula","null","nula",,,,"num"],["jedan","eins","jedan",,,,"num"],["dva","zwei","dva",,,,"num"],
+  ["tri","drei","tri",,,,"num"],["cetiri","vier","četiri",,,,"num"],["pet","fünf","pet",,,,"num"],
+  ["sest","sechs","šest",,,,"num"],["sedam","sieben","sedam",,,,"num"],["osam","acht","osam",,,,"num"],
+  ["devet","neun","devet",,,,"num"],["deset","zehn","deset",,,,"num"],["sto100","hundert","sto",,,,"num"],
+  // Verben (Infinitiv)
+  ["biti","sein","biti",,,"v","verb"],["imati","haben","imati",,,"v","verb"],["htjeti","wollen","htjeti",,,"v","verb"],
+  ["moci","können","moći",,,"v","verb"],["ici","gehen","ići",,,"v","verb"],["raditi","arbeiten / machen","raditi",,,"v","verb"],
+  ["govoriti","sprechen","govoriti",,,"v","verb"],["jesti","essen","jesti",,,"v","verb"],["piti","trinken","piti",,,"v","verb"],
+  ["znati","wissen","znati",,,"v","verb"],["uciti","lernen","učiti",,,"v","verb"],["trebati","brauchen","trebati",,,"v","verb"],
+  ["voljeti","mögen / lieben","voljeti",,,"v","verb"],["zivjeti","leben / wohnen","živjeti",,,"v","verb"],
+  ["razumjeti","verstehen","razumjeti",,,"v","verb"],["kupiti","kaufen","kupiti",,,"v","verb"],["vidjeti","sehen","vidjeti",,,"v","verb"],
+  // Nomen (Genus + Emoji)
+  ["voda","das Wasser","voda","f","💧",,"noun food"],["kava","der Kaffee","kava","f","☕",,"noun food"],
+  ["kruh","das Brot","kruh","m","🍞",,"noun food"],["mlijeko","die Milch","mlijeko","n","🥛","","noun food"],
+  ["jabuka","der Apfel","jabuka","f","🍎",,"noun food"],["kuca","das Haus","kuća","f","🏠",,"noun"],
+  ["grad","die Stadt","grad","m","🏙️",,"noun"],["soba","das Zimmer","soba","f",,,"noun"],
+  ["stol","der Tisch","stol","m",,,"noun"],["knjiga","das Buch","knjiga","f","📖",,"noun"],
+  ["auto","das Auto","auto","m","🚗",,"noun"],["vlak","der Zug","vlak","m","🚆",,"noun"],
+  ["covjek","der Mensch","čovjek","m",,,"noun"],["zena","die Frau","žena","f","👩",,"noun"],
+  ["muskarac","der Mann","muškarac","m","👨",,"noun"],["dijete","das Kind","dijete","n",,,"noun"],
+  ["prijatelj","der Freund","prijatelj","m",,,"noun"],["obitelj","die Familie","obitelj","f",,,"noun"],
+  ["pas","der Hund","pas","m","🐕",,"noun"],["macka","die Katze","mačka","f","🐈",,"noun"],
+  ["dan","der Tag","dan","m",,,"noun"],["noc","die Nacht","noć","f","🌙",,"noun"],
+  ["novac","das Geld","novac","m","💰",,"noun"],["posao","die Arbeit","posao","m",,,"noun"],
+  ["skola","die Schule","škola","f","🏫",,"noun"],["more","das Meer","more","n","🌊",,"noun"],
+  // Adjektive
+  ["dobar","gut","dobar",,,"adj","adj"],["los","schlecht","loš",,,"adj","adj"],["velik","groß","velik",,,"adj","adj"],
+  ["malen","klein","mali|malen",,,"adj","adj"],["lijep","schön","lijep",,,"adj","adj"],["nov","neu","nov",,,"adj","adj"],
+  ["star","alt","star",,,"adj","adj"],["skup","teuer","skup",,,"adj","adj"],["jeftin","billig","jeftin",,,"adj","adj"],
+  ["topao","warm","topao",,,"adj","adj"],["hladan","kalt","hladan",,,"adj","adj"],
+  // Wochentage
+  ["ponedjeljak","Montag","ponedjeljak",,,,"day"],["utorak","Dienstag","utorak",,,,"day"],
+  ["srijeda","Mittwoch","srijeda",,,,"day"],["cetvrtak","Donnerstag","četvrtak",,,,"day"],
+  ["petak","Freitag","petak",,,,"day"],["subota","Samstag","subota",,,,"day"],["nedjelja","Sonntag","nedjelja",,,,"day"],
+  // Farben
+  ["crven","rot","crven",,,"adj","color"],["plav","blau","plav",,,"adj","color"],["zelen","grün","zelen",,,"adj","color"],
+  ["zut","gelb","žut",,,"adj","color"],["crn","schwarz","crn",,,"adj","color"],["bijel","weiß","bijel",,,"adj","color"],
+  ["caj","der Tee","čaj","m","🍵",,"noun"],
+  ["juha","die Suppe","juha","f","🍲",,"noun"],
+  ["riba","der Fisch","riba","f","🐟",,"noun"],
+  ["sladoled","das Eis","sladoled","m","🍦",,"noun"],
+  ["pivo","das Bier","pivo","n","🍺",,"noun"],
+  ["vino","der Wein","vino","n","🍷",,"noun"],
+  ["cokolada","die Schokolade","čokolada","f","🍫",,"noun"],
+  ["dorucak","das Frühstück","doručak","m","🍳",,"noun"],
+  ["jelo","das Gericht","jelo","n",,,"noun"],
+  ["casa","das Glas","čaša","f",,,"noun"],
+  ["jelovnik","die Speisekarte","jelovnik","m",,,"noun"],
+  ["racun","die Rechnung","račun","m",,,"noun"],
+  ["kartica","die Bankkarte","kartica","f","💳",,"noun"],
+  ["gotovina","das Bargeld","gotovina","f",,,"noun"],
+  ["vrecica","die Tüte","vrećica","f",,,"noun"],
+  ["blagajna","die Kasse","blagajna","f",,,"noun"],
+  ["popust","der Rabatt","popust","m",,,"noun"],
+  ["poklon","das Geschenk","poklon","m","🎁",,"noun"],
+  ["euro","der Euro","euro","m","💶",,"noun"],
+  ["cijena","der Preis","cijena","f",,,"noun"],
+  ["velicina","die Größe","veličina","f",,,"noun"],
+  ["boja","die Farbe","boja","f","🎨",,"noun"],
+  ["banka","die Bank","banka","f","🏦",,"noun"],
+  ["centar","das Zentrum","centar","m",,,"noun"],
+  ["trznica","der Markt","tržnica","f",,,"noun"],
+  ["toalet","die Toilette","toalet","m","🚻",,"noun"],
+  ["plan","der Plan","plan","m",,,"noun"],
+  ["stanica","die Haltestelle","stanica","f",,,"noun"],
+  ["kolodvor","der Bahnhof","kolodvor","m","🚉",,"noun"],
+  ["ravno","geradeaus","ravno",,,"adv","adv"],
+  ["lijevo","links","lijevo",,,"adv","adv"],
+  ["desno","rechts","desno",,,"adv","adv"],
+  ["blizu","nah","blizu",,,"adv","adv"],
+  ["daleko","weit","daleko",,,"adv","adv"],
+  ["tamo","dort","tamo",,,"adv","adv"],
+  ["ovdje","hier","ovdje",,,"adv","adv"],
+  ["autobus","der Bus","autobus","m","🚌",,"noun"],
+  ["taksi","das Taxi","taksi","m","🚕",,"noun"],
+  ["karta","die Fahrkarte","karta","f","🎫",,"noun"],
+  ["hotel","das Hotel","hotel","m","🏨",,"noun"],
+  ["kljuc","der Schlüssel","ključ","m","🔑",,"noun"],
+  ["hrvatska","Kroatien","Hrvatska","f",,,"noun"],
+  ["njemacka","Deutschland","Njemačka","f",,,"noun"],
+  ["austrija","Österreich","Austrija","f",,,"noun"],
+  ["sat","die Stunde / Uhr","sat","m","⏰",,"noun"],
+  ["minuta","die Minute","minuta","f",,,"noun"],
+  ["vikend","das Wochenende","vikend","m",,,"noun"],
+  ["veceras","heute Abend","večeras",,,"adv","adv"],
+  ["jutro","der Morgen","jutro","n",,,"noun"],
+  ["godina","das Jahr","godina","f",,,"noun"],
+  ["vrijeme","das Wetter","vrijeme","n",,,"noun"],
+  ["kisa","der Regen","kiša","f","🌧️",,"noun"],
+  ["snijeg","der Schnee","snijeg","m","❄️",,"noun"],
+  ["sunce","die Sonne","sunce","n","☀️",,"noun"],
+  ["brat","der Bruder","brat","m",,,"noun"],
+  ["sestra","die Schwester","sestra","f",,,"noun"],
+  ["prijateljica","die Freundin","prijateljica","f",,,"noun"],
+  ["ljubimac","das Haustier","ljubimac","m",,,"noun"],
+  ["ekonomija","die Wirtschaft","ekonomija","f",,,"noun"],
+  ["lijek","das Medikament","lijek","m","💊",,"noun"],
+  ["glava","der Kopf","glava","f",,,"noun"],
+  ["glavobolja","die Kopfschmerzen","glavobolja","f",,,"noun"],
+  ["kino","das Kino","kino","n","🎬",,"noun"],
+  ["setnja","der Spaziergang","šetnja","f",,,"noun"],
+  ["rodjendan","der Geburtstag","rođendan","m","🎂",,"noun"],
+  ["dolaziti","kommen / ankommen","dolaziti",,,"v","verb"],
+  ["platiti","bezahlen","platiti",,,"v","verb"],
+  ["pomoci","helfen","pomoći",,,"v","verb"],
+  ["spavati","schlafen","spavati",,,"v","verb"],
+  ["studirati","studieren","studirati",,,"v","verb"],
+  ["traziti","suchen","tražiti",,,"v","verb"],
+  ["ponoviti","wiederholen","ponoviti",,,"v","verb"],
+ ],
+ chunk:[
+  ["c_bok","Hallo! / Tschüss!","Bok!"],
+  ["c_dan","Guten Tag","Dobar dan"],
+  ["c_jutro","Guten Morgen","Dobro jutro"],
+  ["c_vecer","Guten Abend","Dobra večer"],
+  ["c_laku","Gute Nacht","Laku noć"],
+  ["c_dovid","Auf Wiedersehen","Doviđenja"],
+  ["c_kakosi","Wie geht es dir?","Kako si?"],
+  ["c_dobrosam","Mir geht es gut","Dobro sam"],
+  ["c_hvalalijepa","Vielen Dank","Hvala lijepa|Hvala lijepo"],
+  ["c_nemana","Gern geschehen","Nema na čemu"],
+  ["c_oprosti","Entschuldige","Oprosti"],
+  ["c_kakosezoves","Wie heißt du?","Kako se zoveš?"],
+  ["c_zovemse","Ich heiße …","Zovem se"],
+  ["c_dragomije","Freut mich","Drago mi je"],
+  ["c_odakle","Woher kommst du?","Odakle si?"],
+  ["c_nerazumijem","Ich verstehe nicht","Ne razumijem"],
+  ["c_govorimmalo","Ich spreche ein bisschen Kroatisch","Govorim malo hrvatski"],
+  ["c_kolikokosta","Wie viel kostet das?","Koliko košta?"],
+  ["c_gdjejetoalet","Wo ist die Toilette?","Gdje je toalet?"],
+  ["c_neznam","Ich weiß nicht","Ne znam"],
+  ["c_zelimkavu","Ich möchte einen Kaffee","Želim kavu"],
+  ["c_trebampomoc","Ich brauche Hilfe","Trebam pomoć"],
+  ["c_imampitanje","Ich habe eine Frage","Imam pitanje"],
+  ["c_govoritenjemacki","Sprechen Sie Deutsch?","Govorite li njemački?"],
+  ["c_svenajbolje","Alles Gute","Sve najbolje"],
+ ],
+ fill:[
+  ["f_akk1","„Ich trinke Wasser.“","Pijem ___.","vodu","voda → -u (Akkusativ, feminin)","akk"],
+  ["f_akk2","„Ich möchte einen Kaffee.“","Želim ___.","kavu","kava → kavu","akk"],
+  ["f_akk3","„Ich lese ein Buch.“","Čitam ___.","knjigu","knjiga → knjigu","akk"],
+  ["f_biti1","„Ich bin Student.“","Ja ___ student.","sam","biti, 1. SG: sam","biti"],
+  ["f_biti2","„Er ist hier.“","On ___ ovdje.","je","biti, 3. SG: je","biti"],
+  ["f_biti3","„Wir sind aus Deutschland.“","Mi ___ iz Njemačke.","smo","biti, 1. PL: smo","biti"],
+  ["f_pres1","„Ich spreche Kroatisch.“","___ hrvatski.","Govorim|govorim","Präsens 1. SG: -m","praesens"],
+  ["f_pres2","„Du arbeitest.“","Ti ___.","radiš","Präsens 2. SG: -š","praesens"],
+  ["f_pres3","„Wir lernen.“","Mi ___.","učimo","Präsens 1. PL: -mo","praesens"],
+  ["f_neg","„Ich verstehe nicht.“","___ razumijem.","Ne|ne","Negation: ne + Verb","neg"],
+  ["f_li","„Sprichst du Kroatisch?“","Govoriš ___ hrvatski?","li","Fragepartikel li an 2. Stelle","frage"],
+  ["f_imam","„Ich habe ein Auto.“","___ auto.","Imam|imam","imati, 1. SG: imam","praesens","imati"],
+  ["f_iz","„Ich komme aus Deutschland.“","Dolazim iz ___.","Njemačke|njemačke","iz + Genitiv: Njemačka → Njemačke","gen"],
+  ["f_u","„Ich wohne in der Stadt.“","Živim u ___.","gradu","u + Lokativ: grad → gradu","lok"],
+  ["f_pet","„fünf Äpfel“","pet ___","jabuka","Zahl 5+ → Genitiv Plural","num"],
+  ["f_akk4","Ich esse Brot.","Jedem ___.","kruh","Akkusativ m (unbelebt): unverändert","akk"],
+  ["f_akk5","Ich trinke Milch.","Pijem ___.","mlijeko","Akkusativ Neutrum: unverändert","akk"],
+  ["f_akk6","Ich habe einen Hund.","Imam ___.","psa","Akkusativ m belebt: -a (pas → psa)","akk"],
+  ["f_akk7","Ich sehe die Frau.","Vidim ___.","ženu","Akkusativ f: -a → -u (žena → ženu)","akk"],
+  ["f_akk8","Ich kaufe ein Auto.","Kupujem ___.","auto","endet auf -o: unverändert","akk"],
+  ["f_akk9","Ich möchte Suppe.","Želim ___.","juhu","Akkusativ f: juha → juhu","akk"],
+  ["f_gen2","eine Tasse Kaffee","šalica ___","kave","Menge → Genitiv (kava → kave)","gen"],
+  ["f_gen3","ein Glas Wasser","čaša ___","vode","Menge → Genitiv (voda → vode)","gen"],
+  ["f_gen4","ohne Milch","bez ___","mlijeka","bez + Genitiv (mlijeko → mlijeka)","gen"],
+  ["f_gen5","aus der Stadt","iz ___","grada","iz + Genitiv (grad → grada)","gen"],
+  ["f_gen6","Ich habe kein Geld.","Nemam ___.","novca","Verneinung → Genitiv (novac → novca)","gen"],
+  ["f_gen7","bei einem Freund","kod ___","prijatelja","kod + Genitiv","gen"],
+  ["f_gen8","gegen Kopfschmerzen","protiv ___","glavobolje","protiv + Genitiv","gen"],
+  ["f_gen9","von zu Hause","od ___","kuće","od + Genitiv (kuća → kuće)","gen"],
+  ["f_lok2","Ich arbeite in der Bank.","Radim u ___.","banci","u + Lokativ; k → c (banka → banci)","lok"],
+  ["f_lok3","Ich bin in der Schule.","Ja sam u ___.","školi","u + Lokativ (škola → školi)","lok"],
+  ["f_lok4","auf dem Tisch","na ___","stolu","na + Lokativ (stol → stolu)","lok"],
+  ["f_lok5","am Meer","na ___","moru","na + Lokativ (more → moru)","lok"],
+  ["f_lok6","im Auto","u ___","autu","u + Lokativ (auto → autu)","lok"],
+  ["f_lok7","Wir reden über die Arbeit.","Govorimo o ___.","poslu","o + Lokativ (Thema); posao → poslu","lok"],
+  ["f_lok8","in der Nacht","u ___","noći","Lokativ f auf Konsonant: -i (noć → noći)","lok"],
+  ["f_lok9","in Kroatien","u ___","Hrvatskoj|hrvatskoj","u + Lokativ (Hrvatska → Hrvatskoj)","lok"],
+  ["f_dat1","Ich gebe dem Freund das Buch.","Dajem ___ knjigu.","prijatelju","Dativ m: -u (Empfänger – wem?)","dat"],
+  ["f_dat2","Es gefällt der Frau.","Sviđa se ___.","ženi","sviđati se + Dativ (žena → ženi)","dat"],
+  ["f_dat3","Ich helfe der Mutter.","Pomažem ___.","mami","pomagati + Dativ (mama → mami)","dat"],
+  ["f_dat4","zum Freund","k ___","prijatelju","k(a) + Dativ","dat"],
+  ["f_dat5","Mir ist kalt.","___ je hladno.","Meni|meni","Dativ der Person: meni (mir)","dat"],
+  ["f_dat6","Dem Kind ist warm.","___ je toplo.","Djetetu|djetetu","Dativ: dijete → djetetu","dat"],
+  ["f_ins1","Ich zahle mit Karte.","Plaćam ___.","karticom","Werkzeug → Instrumental ohne Präposition (-om)","ins"],
+  ["f_ins2","Kaffee mit Milch","kava ___ mlijekom","s|sa","s(a) + Instrumental","ins"],
+  ["f_ins3","mit dem Freund","s ___","prijateljem","s + Instrumental (prijatelj → prijateljem)","ins"],
+  ["f_ins4","Ich reise mit dem Auto.","Putujem ___.","autom","Mittel → Instrumental (auto → autom)","ins"],
+  ["f_ins5","Ich fahre mit dem Zug.","Idem ___.","vlakom","Instrumental (vlak → vlakom)","ins"],
+  ["f_pres4","Ich wohne in Wien.","___ u Beču.","Živim|živim","Präsens 1. SG: -im","praesens","zivjeti"],
+  ["f_pres5","Du isst Brot.","Ti ___ kruh.","jedeš","Präsens 2. SG: -eš","praesens","jesti"],
+  ["f_pres6","Er trinkt Wasser.","On ___ vodu.","pije","Präsens 3. SG","praesens","piti"],
+  ["f_pres7","Wir gehen ins Kino.","___ u kino.","Idemo|idemo","Präsens 1. PL: -emo","praesens","ici"],
+  ["f_pres8","Ihr lernt Kroatisch.","Vi ___ hrvatski.","učite","Präsens 2. PL: -ite","praesens","uciti"],
+  ["f_pres9","Sie sprechen Deutsch.","Oni ___ njemački.","govore","Präsens 3. PL: -e","praesens","govoriti"],
+  ["f_pres10","Ich kann nicht.","Ne ___.","mogu","moći – unregelmäßig","praesens","moci"],
+  ["f_pres11","Du willst Kaffee.","Ti ___ kavu.","hoćeš","htjeti – unregelmäßig","praesens","htjeti"],
+  ["f_pres12","Wir haben Zeit.","___ vremena.","Imamo|imamo","imati 1. PL: -mo","praesens","imati"],
+  ["f_biti4","Du bist müde.","Ti ___ umoran.","si","biti 2. SG: si","biti","biti"],
+  ["f_biti5","Ihr seid hier.","Vi ___ ovdje.","ste","biti 2. PL: ste","biti","biti"],
+  ["f_biti6","Sie sind Freunde.","Oni ___ prijatelji.","su","biti 3. PL: su","biti","biti"],
+  ["f_biti7","Ich bin nicht zu Hause.","___ kod kuće.","Nisam|nisam","Verneinung von biti: nisam","biti","biti"],
+  ["f_biti8","Er ist nicht hier.","On ___ ovdje.","nije","nije = ist nicht","biti","biti"],
+  ["f_neg2","Ich weiß nicht.","___ znam.","Ne|ne","ne + Verb","neg"],
+  ["f_neg3","Ich trinke keinen Kaffee.","___ pijem kavu.","Ne|ne","ne + Verb","neg"],
+  ["f_neg4","Er kommt nicht.","On ___ dolazi.","ne","ne + Verb","neg"],
+  ["f_neg5","Das ist nicht gut.","To ___ dobro.","nije","biti verneint: nije","neg"],
+  ["f_neg6","Niemand ist hier.","___ nije ovdje.","Nitko|nitko","doppelte Verneinung: nitko + nije","neg"],
+  ["f_frage2","Trinkst du Kaffee?","Piješ ___ kavu?","li","Verb + li","frage"],
+  ["f_frage3","Bist du müde?","Jesi ___ umoran?","li","biti-Frage: jesi li","frage"],
+  ["f_frage4","Möchtest du Tee?","Želiš ___ čaj?","li","Verb + li","frage"],
+  ["f_frage5","Verstehst du?","___ li?","Razumiješ|razumiješ","2. SG razumjeti + li","frage","razumjeti"],
+  ["f_frage6","Hast du Zeit?","___ li vremena?","Imaš|imaš","imati 2. SG + li","frage","imati"],
+  ["f_num2","ein Apfel","jedna ___","jabuka","1 → Nominativ Singular","num"],
+  ["f_num3","zwei Bücher","dvije ___","knjige","2–4 → Paukal (knjige)","num"],
+  ["f_num4","drei Tage","tri ___","dana","2–4 → Paukal (dana)","num"],
+  ["f_num5","vier Frauen","četiri ___","žene","2–4 → Paukal (žene)","num"],
+  ["f_num6","fünf Häuser","pet ___","kuća","5+ → Genitiv Plural (kuća)","num"],
+  ["f_num7","zehn Euro","deset ___","eura","5+ → Genitiv Plural (eura)","num"],
+  ["f_num8","zwei Kaffee","dvije ___","kave","2–4 → Paukal (kave)","num"],
+  ["f_con_ugrad","Ich gehe in die Stadt.","Idem u ___.","grad","Richtung: u + Akkusativ (Bewegung) – grad bleibt grad. Vergleich: u gradu = Ort (Lokativ).","akk"],
+  ["f_con_govorite","Sprechen Sie Deutsch? (höflich)","___ li njemački?","Govorite|govorite","Höflichkeitsform = 2. PL: govoriti → govorite (du: govoriš).","frage","govoriti"],
+  ["f_con_smnom","Kommst du mit mir?","Ideš li ___?","sa mnom|s mnom","s(a) + Instrumental: ja → mnom; vor m wird s zu sa.","ins"],
+ ]
+};
+// Dialoge (Anwendung)
+const DIALOGS = [
+ {id:"d1",title:"Begr\u00fc\u00dfung",scene:"Ihr trefft euch zum ersten Mal.",roles:{A:"Ana",B:"Du"},lines:[{s:"A",de:"Hallo, wie geht es dir?",hr:["Bok, kako si?", "Zdravo, kako si?"]},{s:"B",de:"Gut, danke. Und dir?",hr:["Dobro, hvala. A ti?"]},{s:"A",de:"Auch gut.",hr:["I ja sam dobro.", "Dobro sam i ja."]}]},
+ {id:"d2",title:"F\u00f6rmliche Begr\u00fc\u00dfung",scene:"Im B\u00fcro.",roles:{A:"Herr Horvat",B:"Du"},lines:[{s:"A",de:"Guten Tag, wie geht es Ihnen?",hr:["Dobar dan, kako ste?"]},{s:"B",de:"Danke, gut.",hr:["Hvala, dobro."]},{s:"A",de:"Sch\u00f6nen Tag noch!",hr:["Ugodan dan!"]}]},
+ {id:"d3",title:"Am Morgen",scene:"Beim Fr\u00fchst\u00fcck.",roles:{A:"Mama",B:"Du"},lines:[{s:"A",de:"Guten Morgen!",hr:["Dobro jutro!"]},{s:"B",de:"Guten Morgen! Wie geht's?",hr:["Dobro jutro! Kako si?"]},{s:"A",de:"Bestens, danke.",hr:["Odli\u010dno, hvala."]}]},
+ {id:"d4",title:"Am Abend",scene:"Du triffst den Nachbarn.",roles:{A:"Nachbar",B:"Du"},lines:[{s:"A",de:"Guten Abend!",hr:["Dobra ve\u010der!"]},{s:"B",de:"Guten Abend!",hr:["Dobra ve\u010der!"]},{s:"A",de:"Gute Nacht!",hr:["Laku no\u0107!"]}]},
+ {id:"d5",title:"Verabschiedung",scene:"Du musst los.",roles:{A:"Du",B:"Petra"},lines:[{s:"A",de:"Ich muss gehen.",hr:["Moram i\u0107i."]},{s:"B",de:"Schade. Bis morgen!",hr:["\u0160teta. Do sutra!"]},{s:"A",de:"Tsch\u00fcss!",hr:["Bok!", "Dovi\u0111enja!"]}]},
+ {id:"d6",title:"Danke sagen",scene:"Nach dem Einkauf.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Vielen Dank!",hr:["Hvala lijepa!"]},{s:"B",de:"Gern geschehen.",hr:["Nema na \u010demu."]},{s:"A",de:"Auf Wiedersehen.",hr:["Dovi\u0111enja."]}]},
+ {id:"d7",title:"Entschuldigung",scene:"Auf der Stra\u00dfe.",roles:{A:"Du",B:"Passant"},lines:[{s:"A",de:"Entschuldigung!",hr:["Oprostite!"]},{s:"B",de:"Ja, bitte?",hr:["Da, izvolite?"]},{s:"A",de:"Kein Problem.",hr:["Nema problema."]}]},
+ {id:"d8",title:"Wie bitte?",scene:"Im Unterricht.",roles:{A:"Du",B:"Lehrer"},lines:[{s:"A",de:"Entschuldigung, ich verstehe nicht.",hr:["Oprostite, ne razumijem."]},{s:"B",de:"Soll ich wiederholen?",hr:["Da ponovim?"]},{s:"A",de:"Ja, bitte. Langsamer.",hr:["Da, molim. Sporije."]}]},
+ {id:"d9",title:"Name",scene:"Bei einem Treffen.",roles:{A:"Lana",B:"Du"},lines:[{s:"A",de:"Wie hei\u00dft du?",hr:["Kako se zove\u0161?"]},{s:"B",de:"Ich hei\u00dfe Lara.",hr:["Zovem se Lara."]},{s:"A",de:"Freut mich!",hr:["Drago mi je!"]}]},
+ {id:"d10",title:"F\u00f6rmlich: Name",scene:"Beim Termin.",roles:{A:"Frau Kova\u010d",B:"Du"},lines:[{s:"A",de:"Wie hei\u00dfen Sie?",hr:["Kako se zovete?"]},{s:"B",de:"Ich hei\u00dfe Marko Horvat.",hr:["Zovem se Marko Horvat."]},{s:"A",de:"Sehr erfreut.",hr:["Drago mi je."]}]},
+ {id:"d11",title:"Herkunft",scene:"Smalltalk.",roles:{A:"Ivan",B:"Du"},lines:[{s:"A",de:"Woher kommst du?",hr:["Odakle si?"]},{s:"B",de:"Ich komme aus \u00d6sterreich.",hr:["Iz Austrije sam.", "Dolazim iz Austrije."]},{s:"A",de:"Sch\u00f6n!",hr:["Lijepo!"]}]},
+ {id:"d12",title:"Nationalit\u00e4t",scene:"Ihr lernt euch kennen.",roles:{A:"Du",B:"Karla"},lines:[{s:"A",de:"Bist du aus Deutschland?",hr:["Jesi li iz Njema\u010dke?"]},{s:"B",de:"Nein, aus \u00d6sterreich.",hr:["Ne, iz Austrije."]},{s:"A",de:"Und du?",hr:["A ti?"]},{s:"B",de:"Ich bin aus Kroatien.",hr:["Ja sam iz Hrvatske."]}]},
+ {id:"d13",title:"Sprachen",scene:"\u00dcber das Lernen.",roles:{A:"Maja",B:"Du"},lines:[{s:"A",de:"Sprichst du Kroatisch?",hr:["Govori\u0161 li hrvatski?"]},{s:"B",de:"Ein bisschen. Ich lerne.",hr:["Malo. U\u010dim."]},{s:"A",de:"Sehr gut!",hr:["Vrlo dobro!"]}]},
+ {id:"d14",title:"Sprachen (f\u00f6rmlich)",scene:"Im Gesch\u00e4ft.",roles:{A:"Du",B:"Tomislav"},lines:[{s:"A",de:"Sprechen Sie Deutsch?",hr:["Govorite li njema\u010dki?"]},{s:"B",de:"Ja, ein wenig.",hr:["Da, malo."]},{s:"A",de:"Super.",hr:["Super."]}]},
+ {id:"d15",title:"Alter",scene:"Beim Kennenlernen.",roles:{A:"Lana",B:"Du"},lines:[{s:"A",de:"Wie alt bist du?",hr:["Koliko ima\u0161 godina?"]},{s:"B",de:"Ich bin 25.",hr:["Imam dvadeset pet godina."]},{s:"A",de:"Ich auch!",hr:["I ja!"]}]},
+ {id:"d16",title:"Studium",scene:"\u00dcber das Studium.",roles:{A:"Nina",B:"Du"},lines:[{s:"A",de:"Was machst du?",hr:["\u0160to radi\u0161?"]},{s:"B",de:"Ich studiere.",hr:["Studiram."]},{s:"A",de:"Was studierst du?",hr:["\u0160to studira\u0161?"]},{s:"B",de:"Wirtschaft.",hr:["Ekonomiju."]}]},
+ {id:"d17",title:"Arbeit",scene:"Unter Kollegen.",roles:{A:"Du",B:"Kollege"},lines:[{s:"A",de:"Wo arbeitest du?",hr:["Gdje radi\u0161?"]},{s:"B",de:"In einer Bank.",hr:["U banci."]},{s:"A",de:"Interessant.",hr:["Zanimljivo."]}]},
+ {id:"d18",title:"Freund vorstellen",scene:"Du stellst jemanden vor.",roles:{A:"Du",B:"Karla"},lines:[{s:"A",de:"Das ist mein Freund.",hr:["Ovo je moj prijatelj."]},{s:"B",de:"Freut mich!",hr:["Drago mi je!"]},{s:"A",de:"Er kommt aus Kroatien.",hr:["On je iz Hrvatske."]}]},
+ {id:"d19",title:"Wohnort",scene:"Smalltalk.",roles:{A:"Ivana",B:"Du"},lines:[{s:"A",de:"Wo wohnst du?",hr:["Gdje \u017eivi\u0161?"]},{s:"B",de:"In Wien.",hr:["U Be\u010du."]},{s:"A",de:"Sch\u00f6ne Stadt!",hr:["Lijep grad!"]}]},
+ {id:"d20",title:"Wie geht's",scene:"Kurzer Gru\u00df.",roles:{A:"Du",B:"Freund"},lines:[{s:"A",de:"Hey, wie geht's?",hr:["Hej, kako si?"]},{s:"B",de:"Nicht schlecht.",hr:["Nije lo\u0161e."]},{s:"A",de:"Sch\u00f6n!",hr:["Lijepo!"]}]},
+ {id:"d21",title:"Caf\u00e9: Bestellung",scene:"Du bestellst.",roles:{A:"Kellner",B:"Du"},lines:[{s:"A",de:"Was m\u00f6chten Sie?",hr:["\u0160to \u017eelite?"]},{s:"B",de:"Einen Kaffee, bitte.",hr:["Kavu, molim."]},{s:"A",de:"Mit Milch?",hr:["S mlijekom?"]},{s:"B",de:"Ja, bitte.",hr:["Da, molim."]}]},
+ {id:"d22",title:"Caf\u00e9: Tee",scene:"Du bestellst.",roles:{A:"Kellnerin",B:"Du"},lines:[{s:"A",de:"Guten Tag!",hr:["Dobar dan!"]},{s:"B",de:"Einen Tee, bitte.",hr:["\u010caj, molim."]},{s:"A",de:"Sofort.",hr:["Odmah."]}]},
+ {id:"d23",title:"Wasser",scene:"Im Lokal.",roles:{A:"Du",B:"Kellner"},lines:[{s:"A",de:"Ein Wasser, bitte.",hr:["Vodu, molim."]},{s:"B",de:"Mit Kohlens\u00e4ure?",hr:["Gaziranu?"]},{s:"A",de:"Ohne, bitte.",hr:["Negaziranu, molim."]}]},
+ {id:"d24",title:"Speisekarte",scene:"Im Restaurant.",roles:{A:"Du",B:"Kellner"},lines:[{s:"A",de:"Die Speisekarte, bitte.",hr:["Jelovnik, molim."]},{s:"B",de:"Hier, bitte.",hr:["Izvolite."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d25",title:"Essen bestellen",scene:"Beim Essen.",roles:{A:"Kellner",B:"Du"},lines:[{s:"A",de:"Was m\u00f6chten Sie essen?",hr:["\u0160to \u017eelite jesti?"]},{s:"B",de:"Eine Suppe, bitte.",hr:["Juhu, molim."]},{s:"A",de:"Und danach?",hr:["A poslije?"]},{s:"B",de:"Fisch.",hr:["Ribu."]}]},
+ {id:"d26",title:"Fr\u00fchst\u00fcck",scene:"Zu Hause.",roles:{A:"Mama",B:"Du"},lines:[{s:"A",de:"Was m\u00f6chtest du zum Fr\u00fchst\u00fcck?",hr:["\u0160to \u017eeli\u0161 za doru\u010dak?"]},{s:"B",de:"Brot und Kaffee.",hr:["Kruh i kavu."]},{s:"A",de:"Sofort.",hr:["Odmah."]}]},
+ {id:"d27",title:"Rechnung",scene:"Nach dem Essen.",roles:{A:"Du",B:"Kellner"},lines:[{s:"A",de:"Die Rechnung, bitte.",hr:["Ra\u010dun, molim."]},{s:"B",de:"Sofort.",hr:["Odmah."]},{s:"A",de:"Danke sch\u00f6n.",hr:["Hvala lijepa."]}]},
+ {id:"d28",title:"Mit Karte zahlen",scene:"An der Kasse.",roles:{A:"Du",B:"Kellner"},lines:[{s:"A",de:"Kann ich mit Karte zahlen?",hr:["Mogu li platiti karticom?"]},{s:"B",de:"Nat\u00fcrlich.",hr:["Naravno."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d29",title:"Schmeckt's?",scene:"Beim Essen.",roles:{A:"Kellnerin",B:"Du"},lines:[{s:"A",de:"Schmeckt es?",hr:["Je li ukusno?"]},{s:"B",de:"Ja, sehr gut!",hr:["Da, vrlo dobro!"]},{s:"A",de:"Es freut mich.",hr:["Drago mi je."]}]},
+ {id:"d30",title:"Tisch reservieren",scene:"Du fragst.",roles:{A:"Du",B:"Restaurant"},lines:[{s:"A",de:"Haben Sie einen Tisch f\u00fcr zwei?",hr:["Imate li stol za dvoje?"]},{s:"B",de:"Ja, hier.",hr:["Da, ovdje."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d31",title:"B\u00e4ckerei",scene:"Du kaufst Brot.",roles:{A:"Verk\u00e4uferin",B:"Du"},lines:[{s:"A",de:"Bitte sehr?",hr:["Izvolite?"]},{s:"B",de:"Zwei Brote, bitte.",hr:["Dva kruha, molim."]},{s:"A",de:"Sonst noch etwas?",hr:["Jo\u0161 ne\u0161to?"]},{s:"B",de:"Nein, danke.",hr:["Ne, hvala."]}]},
+ {id:"d32",title:"Eis",scene:"Am Kiosk.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Ein Eis, bitte.",hr:["Sladoled, molim."]},{s:"B",de:"Welche Sorte?",hr:["Koji okus?"]},{s:"A",de:"Schokolade.",hr:["\u010cokoladu."]}]},
+ {id:"d33",title:"Bier",scene:"An der Bar.",roles:{A:"Kellner",B:"Du"},lines:[{s:"A",de:"Was trinken Sie?",hr:["\u0160to pijete?"]},{s:"B",de:"Ein Bier, bitte.",hr:["Pivo, molim."]},{s:"A",de:"Gro\u00df oder klein?",hr:["Veliko ili malo?"]},{s:"B",de:"Klein.",hr:["Malo."]}]},
+ {id:"d34",title:"Wein",scene:"Im Lokal.",roles:{A:"Du",B:"Kellner"},lines:[{s:"A",de:"Ein Glas Wein, bitte.",hr:["\u010ca\u0161u vina, molim."]},{s:"B",de:"Rot oder wei\u00df?",hr:["Crno ili bijelo?"]},{s:"A",de:"Rot.",hr:["Crno."]}]},
+ {id:"d35",title:"Essen gehen",scene:"Du schl\u00e4gst vor.",roles:{A:"Du",B:"Freund"},lines:[{s:"A",de:"Sollen wir essen gehen?",hr:["Idemo jesti?"]},{s:"B",de:"Ja, gerne!",hr:["Mo\u017ee, rado!"]},{s:"A",de:"Wohin?",hr:["Kamo?"]},{s:"B",de:"Ins Restaurant.",hr:["U restoran."]}]},
+ {id:"d36",title:"Durst",scene:"Kurze Pause.",roles:{A:"Du",B:"Freund"},lines:[{s:"A",de:"M\u00f6chtest du etwas trinken?",hr:["\u017deli\u0161 li ne\u0161to popiti?"]},{s:"B",de:"Ja, Wasser bitte.",hr:["Da, vodu molim."]},{s:"A",de:"Sofort.",hr:["Odmah."]}]},
+ {id:"d37",title:"Auf einen Kaffee",scene:"Einladung.",roles:{A:"Du",B:"Freundin"},lines:[{s:"A",de:"Trinken wir einen Kaffee?",hr:["Idemo na kavu?"]},{s:"B",de:"Gerne!",hr:["Rado!"]},{s:"A",de:"Jetzt?",hr:["Sada?"]},{s:"B",de:"Ja!",hr:["Da!"]}]},
+ {id:"d38",title:"Lecker",scene:"Beim Mittagessen.",roles:{A:"Mama",B:"Du"},lines:[{s:"A",de:"Wie ist das Essen?",hr:["Kakvo je jelo?"]},{s:"B",de:"Sehr lecker!",hr:["Vrlo ukusno!"]},{s:"A",de:"Danke!",hr:["Hvala!"]}]},
+ {id:"d39",title:"Preis",scene:"Im Laden.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Wie viel kostet das?",hr:["Koliko ko\u0161ta?"]},{s:"B",de:"Zehn Euro.",hr:["Deset eura."]},{s:"A",de:"Okay, ich nehme es.",hr:["U redu, \u017eelim to."]}]},
+ {id:"d40",title:"Markt: \u00c4pfel",scene:"Auf dem Markt.",roles:{A:"Verk\u00e4ufer",B:"Du"},lines:[{s:"A",de:"Was brauchen Sie?",hr:["\u0160to trebate?"]},{s:"B",de:"\u00c4pfel, bitte.",hr:["Jabuke, molim."]},{s:"A",de:"Wie viele?",hr:["Koliko?"]},{s:"B",de:"F\u00fcnf.",hr:["Pet."]}]},
+ {id:"d41",title:"Zu teuer",scene:"Beim Handeln.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Das ist teuer.",hr:["To je skupo."]},{s:"B",de:"Es ist gut.",hr:["Dobro je."]},{s:"A",de:"Okay.",hr:["U redu."]}]},
+ {id:"d42",title:"Haben Sie Milch?",scene:"Im Supermarkt.",roles:{A:"Du",B:"Verk\u00e4uferin"},lines:[{s:"A",de:"Haben Sie Milch?",hr:["Imate li mlijeko?"]},{s:"B",de:"Ja, hier.",hr:["Da, ovdje."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d43",title:"Nicht vorr\u00e4tig",scene:"Im Laden.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Haben Sie Brot?",hr:["Imate li kruh?"]},{s:"B",de:"Nein, leider nicht.",hr:["Ne, na\u017ealost."]},{s:"A",de:"Schade.",hr:["\u0160teta."]}]},
+ {id:"d44",title:"Gr\u00f6\u00dfe",scene:"Beim Einkauf.",roles:{A:"Verk\u00e4uferin",B:"Du"},lines:[{s:"A",de:"Welche Gr\u00f6\u00dfe?",hr:["Koja veli\u010dina?"]},{s:"B",de:"Mittel.",hr:["Srednja."]},{s:"A",de:"Hier.",hr:["Izvolite."]}]},
+ {id:"d45",title:"Farbe",scene:"Im Kleidungsgesch\u00e4ft.",roles:{A:"Du",B:"Verk\u00e4uferin"},lines:[{s:"A",de:"Haben Sie das in Blau?",hr:["Imate li to u plavoj boji?"]},{s:"B",de:"Ja.",hr:["Da."]},{s:"A",de:"Super.",hr:["Super."]}]},
+ {id:"d46",title:"Anprobieren",scene:"Im Laden.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Kann ich das anprobieren?",hr:["Mogu li probati?"]},{s:"B",de:"Nat\u00fcrlich.",hr:["Naravno."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d47",title:"Bar zahlen",scene:"An der Kasse.",roles:{A:"Du",B:"Kassierer"},lines:[{s:"A",de:"Ich zahle bar.",hr:["Pla\u0107am gotovinom."]},{s:"B",de:"In Ordnung.",hr:["U redu."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d48",title:"Passend?",scene:"An der Kasse.",roles:{A:"Verk\u00e4ufer",B:"Du"},lines:[{s:"A",de:"Haben Sie es passend?",hr:["Imate li to\u010dno?"]},{s:"B",de:"Moment.",hr:["Trenutak."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d49",title:"T\u00fcte",scene:"Beim Bezahlen.",roles:{A:"Verk\u00e4uferin",B:"Du"},lines:[{s:"A",de:"M\u00f6chten Sie eine T\u00fcte?",hr:["\u017delite li vre\u0107icu?"]},{s:"B",de:"Ja, bitte.",hr:["Da, molim."]},{s:"A",de:"Hier.",hr:["Izvolite."]}]},
+ {id:"d50",title:"Wo zahlen?",scene:"Im Gesch\u00e4ft.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Wo kann ich zahlen?",hr:["Gdje mogu platiti?"]},{s:"B",de:"Dort, an der Kasse.",hr:["Tamo, na blagajni."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d51",title:"Rabatt",scene:"Beim Einkauf.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Gibt es einen Rabatt?",hr:["Ima li popusta?"]},{s:"B",de:"Nein, tut mir leid.",hr:["Ne, \u017eao mi je."]},{s:"A",de:"Kein Problem.",hr:["Nema problema."]}]},
+ {id:"d52",title:"Geschenk",scene:"Du suchst etwas.",roles:{A:"Du",B:"Verk\u00e4uferin"},lines:[{s:"A",de:"Ich suche ein Geschenk.",hr:["Tra\u017eim poklon."]},{s:"B",de:"F\u00fcr wen?",hr:["Za koga?"]},{s:"A",de:"F\u00fcr eine Freundin.",hr:["Za prijateljicu."]}]},
+ {id:"d53",title:"Wo ist die Bank?",scene:"Nach dem Weg.",roles:{A:"Du",B:"Passant"},lines:[{s:"A",de:"Entschuldigung, wo ist die Bank?",hr:["Oprostite, gdje je banka?"]},{s:"B",de:"Geradeaus, dann links.",hr:["Ravno pa lijevo."]},{s:"A",de:"Vielen Dank!",hr:["Hvala lijepa!"]}]},
+ {id:"d54",title:"Wo ist der Bahnhof?",scene:"Nach dem Weg.",roles:{A:"Du",B:"Passantin"},lines:[{s:"A",de:"Wo ist der Bahnhof?",hr:["Gdje je kolodvor?"]},{s:"B",de:"Rechts.",hr:["Desno."]},{s:"A",de:"Ist es weit?",hr:["Je li daleko?"]},{s:"B",de:"Nein, nah.",hr:["Ne, blizu."]}]},
+ {id:"d55",title:"Wo sind wir?",scene:"Du bist unsicher.",roles:{A:"Du",B:"Passant"},lines:[{s:"A",de:"Wo sind wir hier?",hr:["Gdje smo sada?"]},{s:"B",de:"Im Zentrum.",hr:["U centru."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d56",title:"Toilette",scene:"Im Lokal.",roles:{A:"Du",B:"Kellner"},lines:[{s:"A",de:"Wo ist die Toilette?",hr:["Gdje je toalet?"]},{s:"B",de:"Dort hinten.",hr:["Tamo straga."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d57",title:"Bushaltestelle",scene:"Auf der Stra\u00dfe.",roles:{A:"Du",B:"Passant"},lines:[{s:"A",de:"Wo ist die Bushaltestelle?",hr:["Gdje je autobusna stanica?"]},{s:"B",de:"Dort dr\u00fcben.",hr:["Eno tamo."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d58",title:"Wann kommt der Bus?",scene:"An der Haltestelle.",roles:{A:"Du",B:"Fahrer"},lines:[{s:"A",de:"Wann kommt der Bus?",hr:["Kada dolazi autobus?"]},{s:"B",de:"In f\u00fcnf Minuten.",hr:["Za pet minuta."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d59",title:"Fahrkarte",scene:"Am Schalter.",roles:{A:"Du",B:"Schalter"},lines:[{s:"A",de:"Eine Fahrkarte, bitte.",hr:["Kartu, molim."]},{s:"B",de:"Wohin?",hr:["Kamo?"]},{s:"A",de:"Nach Zagreb.",hr:["U Zagreb."]}]},
+ {id:"d60",title:"Wann f\u00e4hrt der Zug?",scene:"Am Bahnhof.",roles:{A:"Du",B:"Schalter"},lines:[{s:"A",de:"Wann f\u00e4hrt der Zug?",hr:["Kada polazi vlak?"]},{s:"B",de:"Um neun Uhr.",hr:["U devet sati."]},{s:"A",de:"Danke!",hr:["Hvala!"]}]},
+ {id:"d61",title:"Taxi",scene:"Du steigst ein.",roles:{A:"Du",B:"Fahrer"},lines:[{s:"A",de:"Zum Hotel, bitte.",hr:["Do hotela, molim."]},{s:"B",de:"Welches Hotel?",hr:["Koji hotel?"]},{s:"A",de:"Hotel Park.",hr:["Hotel Park."]}]},
+ {id:"d62",title:"Ist es weit?",scene:"Im Taxi.",roles:{A:"Du",B:"Fahrer"},lines:[{s:"A",de:"Ist es weit?",hr:["Je li daleko?"]},{s:"B",de:"Nein, nah.",hr:["Ne, blizu."]},{s:"A",de:"Gut.",hr:["Dobro."]}]},
+ {id:"d63",title:"Zum Markt",scene:"Nach dem Weg.",roles:{A:"Du",B:"Passant"},lines:[{s:"A",de:"Wie komme ich zum Markt?",hr:["Kako da do\u0111em do tr\u017enice?"]},{s:"B",de:"Immer geradeaus.",hr:["Samo ravno."]},{s:"A",de:"Danke!",hr:["Hvala!"]}]},
+ {id:"d64",title:"Links oder rechts?",scene:"Unsicher.",roles:{A:"Du",B:"Passantin"},lines:[{s:"A",de:"Links oder rechts?",hr:["Lijevo ili desno?"]},{s:"B",de:"Links.",hr:["Lijevo."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d65",title:"Parken",scene:"Mit dem Auto.",roles:{A:"Du",B:"Mann"},lines:[{s:"A",de:"Wo kann ich parken?",hr:["Gdje mogu parkirati?"]},{s:"B",de:"Dort.",hr:["Tamo."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d66",title:"Stadtplan",scene:"Du fragst.",roles:{A:"Du",B:"Passant"},lines:[{s:"A",de:"Haben Sie einen Stadtplan?",hr:["Imate li plan grada?"]},{s:"B",de:"Ja, hier.",hr:["Da, ovdje."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d67",title:"Wie sp\u00e4t?",scene:"Du fragst nach der Zeit.",roles:{A:"Du",B:"Frau"},lines:[{s:"A",de:"Wie sp\u00e4t ist es?",hr:["Koliko je sati?"]},{s:"B",de:"Drei Uhr.",hr:["Tri sata."]},{s:"A",de:"Danke!",hr:["Hvala!"]}]},
+ {id:"d68",title:"\u00d6ffnungszeit",scene:"Vor dem Laden.",roles:{A:"Du",B:"Verk\u00e4ufer"},lines:[{s:"A",de:"Wann \u00f6ffnen Sie?",hr:["Kada otvarate?"]},{s:"B",de:"Um acht.",hr:["U osam."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d69",title:"Schlie\u00dfzeit",scene:"Im Gesch\u00e4ft.",roles:{A:"Du",B:"Verk\u00e4uferin"},lines:[{s:"A",de:"Wann schlie\u00dfen Sie?",hr:["Kada zatvarate?"]},{s:"B",de:"Um zwanzig Uhr.",hr:["U dvadeset sati."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d70",title:"Welcher Tag?",scene:"Kurze Frage.",roles:{A:"Du",B:"Kollege"},lines:[{s:"A",de:"Welcher Tag ist heute?",hr:["Koji je danas dan?"]},{s:"B",de:"Montag.",hr:["Ponedjeljak."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d71",title:"Termin",scene:"Ihr macht etwas aus.",roles:{A:"Tomislav",B:"Du"},lines:[{s:"A",de:"Sehen wir uns am Montag?",hr:["Vidimo se u ponedjeljak?"]},{s:"B",de:"Ja, gerne.",hr:["Mo\u017ee, rado."]},{s:"A",de:"Um wie viel Uhr?",hr:["U koliko sati?"]},{s:"B",de:"Um zehn.",hr:["U deset."]}]},
+ {id:"d72",title:"Morgen",scene:"\u00dcber Pl\u00e4ne.",roles:{A:"Freundin",B:"Du"},lines:[{s:"A",de:"Was machst du morgen?",hr:["\u0160to radi\u0161 sutra?"]},{s:"B",de:"Ich arbeite.",hr:["Radim."]},{s:"A",de:"Schade.",hr:["\u0160teta."]}]},
+ {id:"d73",title:"Wochenende",scene:"\u00dcber Pl\u00e4ne.",roles:{A:"Nina",B:"Du"},lines:[{s:"A",de:"Was machst du am Wochenende?",hr:["\u0160to radi\u0161 vikend?"]},{s:"B",de:"Ich fahre ans Meer.",hr:["Idem na more."]},{s:"A",de:"Sch\u00f6n!",hr:["Lijepo!"]}]},
+ {id:"d74",title:"Heute Abend",scene:"Spontaner Plan.",roles:{A:"Du",B:"Freund"},lines:[{s:"A",de:"Was machst du heute Abend?",hr:["\u0160to radi\u0161 ve\u010deras?"]},{s:"B",de:"Nichts.",hr:["Ni\u0161ta."]},{s:"A",de:"Gehen wir ins Kino?",hr:["Idemo u kino?"]},{s:"B",de:"Ja!",hr:["Da!"]}]},
+ {id:"d75",title:"Wetter",scene:"Smalltalk.",roles:{A:"Nina",B:"Du"},lines:[{s:"A",de:"Wie ist das Wetter?",hr:["Kakvo je vrijeme?"]},{s:"B",de:"Sonnig.",hr:["Sun\u010dano je."]},{s:"A",de:"Sch\u00f6n!",hr:["Lijepo!"]}]},
+ {id:"d76",title:"Regen",scene:"Du schaust raus.",roles:{A:"Du",B:"Freund"},lines:[{s:"A",de:"Regnet es?",hr:["Pada li ki\u0161a?"]},{s:"B",de:"Ja.",hr:["Da, pada."]},{s:"A",de:"Schade.",hr:["\u0160teta."]}]},
+ {id:"d77",title:"Kalt",scene:"Im Winter.",roles:{A:"Du",B:"Nachbar"},lines:[{s:"A",de:"Es ist kalt heute.",hr:["Hladno je danas."]},{s:"B",de:"Ja, sehr.",hr:["Da, jako."]},{s:"A",de:"Brr!",hr:["Brr!"]}]},
+ {id:"d78",title:"Warm",scene:"Im Sommer.",roles:{A:"Freundin",B:"Du"},lines:[{s:"A",de:"Es ist warm.",hr:["Toplo je."]},{s:"B",de:"Ja, sch\u00f6n.",hr:["Da, lijepo."]},{s:"A",de:"Gehen wir spazieren?",hr:["Idemo u \u0161etnju?"]},{s:"B",de:"Ja!",hr:["Da!"]}]},
+ {id:"d79",title:"Wetter morgen",scene:"\u00dcber das Wetter.",roles:{A:"Du",B:"Nina"},lines:[{s:"A",de:"Wie wird das Wetter morgen?",hr:["Kakvo \u0107e biti vrijeme sutra?"]},{s:"B",de:"Es regnet.",hr:["Pada ki\u0161a."]},{s:"A",de:"Schade.",hr:["\u0160teta."]}]},
+ {id:"d80",title:"Schnee",scene:"Im Winter.",roles:{A:"Kind",B:"Du"},lines:[{s:"A",de:"Es schneit!",hr:["Pada snijeg!"]},{s:"B",de:"Toll!",hr:["Super!"]},{s:"A",de:"Gehen wir raus?",hr:["Idemo van?"]},{s:"B",de:"Ja!",hr:["Da!"]}]},
+ {id:"d81",title:"Geschwister",scene:"\u00dcber die Familie.",roles:{A:"Marija",B:"Du"},lines:[{s:"A",de:"Hast du Geschwister?",hr:["Ima\u0161 li bra\u0107u ili sestre?"]},{s:"B",de:"Ja, einen Bruder.",hr:["Da, brata."]},{s:"A",de:"Sch\u00f6n.",hr:["Lijepo."]}]},
+ {id:"d82",title:"Kinder",scene:"\u00dcber die Familie.",roles:{A:"Marija",B:"Du"},lines:[{s:"A",de:"Hast du Kinder?",hr:["Ima\u0161 li djecu?"]},{s:"B",de:"Ja, ein Kind.",hr:["Da, jedno dijete."]},{s:"A",de:"Wie alt?",hr:["Koliko ima godina?"]},{s:"B",de:"Drei.",hr:["Tri godine."]}]},
+ {id:"d83",title:"Familie hier",scene:"Smalltalk.",roles:{A:"Du",B:"Kollegin"},lines:[{s:"A",de:"Hast du Familie hier?",hr:["Ima\u0161 li obitelj ovdje?"]},{s:"B",de:"Ja, habe ich.",hr:["Da, imam."]},{s:"A",de:"Sch\u00f6n.",hr:["Lijepo."]}]},
+ {id:"d84",title:"Wer ist das?",scene:"Auf einer Feier.",roles:{A:"Du",B:"Freund"},lines:[{s:"A",de:"Wer ist das?",hr:["Tko je to?"]},{s:"B",de:"Mein Freund.",hr:["Moj prijatelj."]},{s:"A",de:"Ah, freut mich.",hr:["Aha, drago mi je."]}]},
+ {id:"d85",title:"Haustier",scene:"\u00dcber Tiere.",roles:{A:"Lana",B:"Du"},lines:[{s:"A",de:"Hast du ein Haustier?",hr:["Ima\u0161 li ljubimca?"]},{s:"B",de:"Ja, eine Katze.",hr:["Da, ma\u010dku."]},{s:"A",de:"S\u00fc\u00df!",hr:["Slatko!"]}]},
+ {id:"d86",title:"Hund",scene:"Im Park.",roles:{A:"Du",B:"Nachbar"},lines:[{s:"A",de:"Ist das Ihr Hund?",hr:["Je li to va\u0161 pas?"]},{s:"B",de:"Ja.",hr:["Da."]},{s:"A",de:"Sch\u00f6n.",hr:["Lijep."]}]},
+ {id:"d87",title:"Wohnung",scene:"\u00dcber das Wohnen.",roles:{A:"Ivana",B:"Du"},lines:[{s:"A",de:"Wo wohnst du?",hr:["Gdje \u017eivi\u0161?"]},{s:"B",de:"In einer Wohnung.",hr:["U stanu."]},{s:"A",de:"Gro\u00df?",hr:["Velik?"]},{s:"B",de:"Klein.",hr:["Malen."]}]},
+ {id:"d88",title:"Zimmer",scene:"\u00dcber die Wohnung.",roles:{A:"Du",B:"Vermieter"},lines:[{s:"A",de:"Wie viele Zimmer?",hr:["Koliko soba?"]},{s:"B",de:"Zwei.",hr:["Dvije."]},{s:"A",de:"Gut.",hr:["Dobro."]}]},
+ {id:"d89",title:"Hotelzimmer",scene:"An der Rezeption.",roles:{A:"Du",B:"Rezeption"},lines:[{s:"A",de:"Haben Sie ein freies Zimmer?",hr:["Imate li slobodnu sobu?"]},{s:"B",de:"Ja.",hr:["Da, imamo."]},{s:"A",de:"Wie viel pro Nacht?",hr:["Koliko ko\u0161ta no\u0107enje?", "Koliko je no\u0107enje?"]},{s:"B",de:"F\u00fcnfzig Euro.",hr:["Pedeset eura."]}]},
+ {id:"d90",title:"Wie viele N\u00e4chte?",scene:"Beim Check-in.",roles:{A:"Rezeption",B:"Du"},lines:[{s:"A",de:"F\u00fcr wie viele N\u00e4chte?",hr:["Za koliko no\u0107i?"]},{s:"B",de:"F\u00fcr zwei.",hr:["Za dvije."]},{s:"A",de:"In Ordnung.",hr:["U redu."]}]},
+ {id:"d91",title:"Schl\u00fcssel",scene:"An der Rezeption.",roles:{A:"Du",B:"Rezeption"},lines:[{s:"A",de:"Den Schl\u00fcssel, bitte.",hr:["Klju\u010d, molim."]},{s:"B",de:"Zimmer f\u00fcnf.",hr:["Soba broj pet."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d92",title:"Fr\u00fchst\u00fcck im Hotel",scene:"Beim Check-in.",roles:{A:"Du",B:"Rezeption"},lines:[{s:"A",de:"Wann gibt es Fr\u00fchst\u00fcck?",hr:["Kada je doru\u010dak?"]},{s:"B",de:"Um acht.",hr:["U osam."]},{s:"A",de:"Danke.",hr:["Hvala."]}]},
+ {id:"d93",title:"Hilfe",scene:"Du brauchst Hilfe.",roles:{A:"Du",B:"Passant"},lines:[{s:"A",de:"K\u00f6nnen Sie mir helfen?",hr:["Mo\u017eete li mi pomo\u0107i?"]},{s:"B",de:"Nat\u00fcrlich.",hr:["Naravno."]},{s:"A",de:"Vielen Dank.",hr:["Hvala lijepa."]}]},
+ {id:"d94",title:"Beim Arzt",scene:"Du f\u00fchlst dich schlecht.",roles:{A:"Du",B:"Arzt"},lines:[{s:"A",de:"Mir geht es nicht gut.",hr:["Nije mi dobro."]},{s:"B",de:"Was tut weh?",hr:["\u0160to vas boli?"]},{s:"A",de:"Mein Kopf.",hr:["Glava."]}]},
+ {id:"d95",title:"Apotheke",scene:"In der Apotheke.",roles:{A:"Du",B:"Apotheker"},lines:[{s:"A",de:"Ich brauche ein Medikament.",hr:["Trebam lijek."]},{s:"B",de:"Gegen was?",hr:["Protiv \u010dega?"]},{s:"A",de:"Kopfschmerzen.",hr:["Glavobolje."]}]},
+ {id:"d96",title:"Schlafen gehen",scene:"Sp\u00e4t am Abend.",roles:{A:"Du",B:"Freund"},lines:[{s:"A",de:"Ich gehe schlafen.",hr:["Idem spavati."]},{s:"B",de:"Gute Nacht!",hr:["Laku no\u0107!"]},{s:"A",de:"Bis morgen.",hr:["Do sutra."]}]},
+ {id:"d97",title:"Geburtstag",scene:"Du gratulierst.",roles:{A:"Du",B:"Freundin"},lines:[{s:"A",de:"Alles Gute zum Geburtstag!",hr:["Sretan ro\u0111endan!"]},{s:"B",de:"Danke!",hr:["Hvala!"]},{s:"A",de:"Alles Gute!",hr:["Sve najbolje!"]}]},
+ {id:"d98",title:"Gl\u00fcckwunsch",scene:"Du gratulierst.",roles:{A:"Du",B:"Kollege"},lines:[{s:"A",de:"Herzlichen Gl\u00fcckwunsch!",hr:["\u010cestitam!"]},{s:"B",de:"Vielen Dank!",hr:["Hvala lijepa!"]},{s:"A",de:"Gern.",hr:["Nema na \u010demu."]}]},
+ {id:"d99",title:"Einladung",scene:"Spontaner Plan.",roles:{A:"Lana",B:"Du"},lines:[{s:"A",de:"Kommst du mit?",hr:["Ide\u0161 li sa mnom?"]},{s:"B",de:"Wohin?",hr:["Kamo?"]},{s:"A",de:"Ins Kino.",hr:["U kino."]},{s:"B",de:"Gerne!",hr:["Rado!"]}]},
+ {id:"d100",title:"Gef\u00e4llt es dir?",scene:"\u00dcber Kroatien.",roles:{A:"Ivan",B:"Du"},lines:[{s:"A",de:"Wie gef\u00e4llt dir Kroatien?",hr:["Kako ti se svi\u0111a Hrvatska?"]},{s:"B",de:"Es gef\u00e4llt mir sehr!",hr:["Jako mi se svi\u0111a!"]},{s:"A",de:"Das freut mich!",hr:["Drago mi je!"]}]}
+];
+
+/* Items aufbauen */
+const ITEMS=[];
+RAW.vocab.forEach(r=>ITEMS.push({id:r[0],type:"vocab",de:r[1],hr:String(r[2]).split("|"),g:r[3]||null,emoji:r[4]||null,pos:r[5]||null,tags:(r[6]||"").split(" ")}));
+RAW.chunk.forEach(r=>ITEMS.push({id:r[0],type:"chunk",de:r[1],hr:String(r[2]).split("|"),tags:["chunk"]}));
+RAW.fill.forEach(r=>ITEMS.push({id:r[0],type:"fill",de:r[1],sentence:r[2],hr:String(r[3]).split("|"),hint:r[4],tags:[r[5]],verb:r[6]||null}));
+const BY_ID={}; ITEMS.forEach(it=>BY_ID[it.id]=it);
+//SIMSTART
+/* Konjugationstabellen (Praesens) */
+const CONJ={
+ biti:{inf:"biti — sein",irr:true,f:["sam","si","je","smo","ste","su"]},
+ imati:{inf:"imati — haben",stem:"ima",e:["m","š","—","mo","te","ju"]},
+ htjeti:{inf:"htjeti — wollen",irr:true,f:["hoću","hoćeš","hoće","hoćemo","hoćete","hoće"]},
+ moci:{inf:"moći — können",irr:true,f:["mogu","možeš","može","možemo","možete","mogu"]},
+ ici:{inf:"ići — gehen",stem:"id",e:["em","eš","e","emo","ete","u"]},
+ govoriti:{inf:"govoriti — sprechen",stem:"govor",e:["im","iš","i","imo","ite","e"]},
+ raditi:{inf:"raditi — arbeiten",stem:"rad",e:["im","iš","i","imo","ite","e"]},
+ uciti:{inf:"učiti — lernen",stem:"uč",e:["im","iš","i","imo","ite","e"]},
+ jesti:{inf:"jesti — essen",stem:"jed",e:["em","eš","e","emo","ete","u"]},
+ piti:{inf:"piti — trinken",stem:"pij",e:["em","eš","e","emo","ete","u"]},
+ znati:{inf:"znati — wissen",stem:"zna",e:["m","š","—","mo","te","ju"]},
+ trebati:{inf:"trebati — brauchen",stem:"treba",e:["m","š","—","mo","te","ju"]},
+ voljeti:{inf:"voljeti — mögen",stem:"vol",e:["im","iš","i","imo","ite","e"]},
+ zivjeti:{inf:"živjeti — leben",stem:"živ",e:["im","iš","i","imo","ite","e"]},
+ razumjeti:{inf:"razumjeti — verstehen",stem:"razumij",e:["em","eš","e","emo","ete","u"]},
+};
+/* Erklaerungen pro Grammatik-Luecke */
+const CASES={
+ nominativ:{n:"Nominativ",role:"Subjekt – wer/was handelt",trig:"Satzsubjekt; Prädikatsnomen nach biti"},
+ akuzativ:{n:"Akkusativ",role:"direktes Objekt – wen/was?",trig:"Ziel der Handlung (piti, imati, željeti, čitati …); Richtung mit u/na"},
+ genitiv:{n:"Genitiv",role:"Herkunft, Menge, Besitz – von wo? wie viel? wessen?",trig:"nach iz, od, do, bez, kod, protiv; nach Mengen & Zahlen ab 5"},
+ dativ:{n:"Dativ",role:"indirektes Objekt – wem?",trig:"Empfänger; nach k(a); bei sviđati se (gefallen)"},
+ lokativ:{n:"Lokativ",role:"Ort & Thema – wo? worüber?",trig:"nur mit Präposition u, na, o, po (Ort/Thema, keine Bewegung)"},
+ instrumental:{n:"Instrumental",role:"Mittel & Begleitung – womit? mit wem?",trig:"nach s(a); Werkzeug ohne Präposition (karticom = mit Karte)"},
+};
+const EXPL={
+ f_akk1:{case:"akuzativ",why:"<b>Warum Akkusativ?</b> <code>vodu</code> ist das direkte Objekt von <code>piti</code> (ich trinke <b>wen/was?</b> → Wasser). Feminine Nomen auf <b>-a</b> bilden den Akkusativ mit <b>-u</b>: <code>voda → vodu</code>.",verb:"piti"},
+ f_akk2:{case:"akuzativ",why:"<b>Warum Akkusativ?</b> Direktes Objekt von <code>željeti</code> (ich möchte <b>was?</b>). Akkusativ feminin: <code>kava → kavu</code> (<code>-a → -u</code>)."},
+ f_akk3:{case:"akuzativ",why:"<b>Warum Akkusativ?</b> Direktes Objekt von <code>čitati</code> (ich lese <b>was?</b>). Akkusativ feminin: <code>knjiga → knjigu</code>."},
+ f_biti1:{why:"<b>biti</b> (sein) ist unregelmäßig. 1. SG = <b>sam</b> (Klitikon, zweite Satzposition). Das Prädikatsnomen <code>student</code> bleibt im <b>Nominativ</b>.",verb:"biti"},
+ f_biti2:{why:"<b>biti</b>, 3. SG = <b>je</b>: <code>on / ona / ono je</code>.",verb:"biti"},
+ f_biti3:{why:"<b>biti</b>, 1. PL = <b>smo</b>: <code>mi smo</code>.",verb:"biti"},
+ f_pres1:{why:"Reguläres Präsens = Stamm + Endung. 1. SG endet auf <b>-m</b>: <code>govor- + -im → govorim</code>.",verb:"govoriti"},
+ f_pres2:{why:"2. SG endet auf <b>-š</b>: <code>rad- + -iš → radiš</code>.",verb:"raditi"},
+ f_pres3:{why:"1. PL endet auf <b>-mo</b>: <code>uč- + -imo → učimo</code>.",verb:"uciti"},
+ f_neg:{why:"Verneinung: <b>ne</b> direkt vor das Verb (<code>ne razumijem</code>). Bei <b>biti</b> verschmilzt es: <code>nisam, nisi, nije …</code>"},
+ f_li:{why:"Ja/Nein-Frage mit <b>li</b>, direkt nach dem Verb an zweiter Stelle: <code>Govoriš li …?</code> = Sprichst du …?"},
+ f_imam:{why:"<b>imati</b> (haben), 1. SG = <b>imam</b>. a-Konjugation: Stamm <code>ima-</code> + Endungen. (Das Objekt <code>auto</code> steht im Akkusativ, sieht hier aber gleich aus.)",verb:"imati"},
+ f_iz:{case:"genitiv",why:"<b>Warum Genitiv?</b> Die Präposition <b>iz</b> (aus, Herkunft) verlangt immer den Genitiv. Feminin: <code>Njemačka → Njemačke</code> (<code>-a → -e</code>)."},
+ f_u:{case:"lokativ",why:"<b>Warum Lokativ?</b> <b>u</b> + Lokativ beschreibt den <b>Ort</b> (wo wohne ich?). Keine Bewegung → Lokativ. Mit Bewegung wäre es Akkusativ: <code>idem u grad</code> (ich gehe in die Stadt). m-Nomen: Endung <b>-u</b> (<code>grad → gradu</code>)."},
+ f_pet:{case:"genitiv",why:"<b>Warum Genitiv Plural?</b> Zahlen ab <b>5</b> verlangen den Genitiv Plural: <code>pet jabuka</code>. Vergleich: 1 → Nominativ (<code>jedna jabuka</code>), 2–4 → Paukal (<code>dvije jabuke</code>)."},
+ f_con_ugrad:{case:"akuzativ",why:"<b>Richtung vs. Ort.</b> Mit <b>Bewegung</b> verlangt <code>u</code> den <b>Akkusativ</b>: <code>idem u grad</code> (grad bleibt grad). Ohne Bewegung wäre es Lokativ: <code>u gradu</code> (in der Stadt)."},
+ f_con_govorite:{why:"<b>du vs. Sie.</b> Die Höflichkeitsform ist die <b>2. Plural</b> (wie frz. <i>vous</i>): <code>govoriš</code> (du) → <code>govorite</code> (Sie). Frage mit <b>li</b> nach dem Verb.",verb:"govoriti"},
+ f_con_smnom:{case:"instrumental",why:"<b>Begleitung → Instrumental.</b> Das Pronomen <code>ja</code> wird im Instrumental zu <code>mnom</code>. Vor <b>m</b> wird die Präposition <code>s</code> zu <code>sa</code>: <code>sa mnom</code>."},
+};
+/* ===================================================================== */
+/* MINIMAL-KONTRASTE — eine Wortform, mehrere Fälle nebeneinander.        */
+/* Modell: jede Zeile = [form, kasus-rolle, beispiel]. Lehrt Unterschiede.*/
+/* ===================================================================== */
+const CONTRAST={
+ kava:{title:"kava → kavu → kave",sub:"Kaffee (f) durch die Fälle",rows:[
+   ["kava","Nominativ — Subjekt (wer/was handelt)","<i>Kava</i> je dobra. — Der Kaffee ist gut."],
+   ["kavu","Akkusativ — direktes Objekt","Pijem <i>kavu</i>. — Ich trinke Kaffee."],
+   ["kave","Genitiv — Menge/Verneinung","šalica <i>kave</i> — eine Tasse Kaffee"]],
+   rule:"f auf <b>-a</b>: Nom <code>-a</code> · Akk <code>-u</code> · Gen <code>-e</code>"},
+ grad:{title:"grad → grada → gradu",sub:"Stadt (m) durch die Fälle",rows:[
+   ["grad","Nominativ — Subjekt","<i>Grad</i> je velik. — Die Stadt ist groß."],
+   ["grada","Genitiv — Herkunft (iz)","iz <i>grada</i> — aus der Stadt"],
+   ["gradu","Lokativ — Ort (u, ohne Bewegung)","u <i>gradu</i> — in der Stadt"]],
+   rule:"m (Konsonant): Nom <code>∅</code> · Gen <code>-a</code> · Lok <code>-u</code>"},
+ prijatelj:{title:"prijatelj → prijatelja → prijateljem",sub:"Freund (m, belebt)",rows:[
+   ["prijatelj","Nominativ — Subjekt","<i>Prijatelj</i> je tu. — Der Freund ist da."],
+   ["prijatelja","Akk = Gen (belebt!) — kod","kod <i>prijatelja</i> — bei einem Freund"],
+   ["prijateljem","Instrumental — Begleitung (s)","s <i>prijateljem</i> — mit dem Freund"]],
+   rule:"m belebt: Akk = Gen <code>-a</code> · Instr <code>-em/-om</code>"},
+ mjesto:{title:"u gradu ↔ iz grada",sub:"Ort vs. Herkunft — Lokativ vs. Genitiv",rows:[
+   ["u gradu","Lokativ — wo? (kein Weg)","Živim <i>u gradu</i>. — Ich wohne in der Stadt."],
+   ["iz grada","Genitiv — woher?","Dolazim <i>iz grada</i>. — Ich komme aus der Stadt."],
+   ["u grad","Akkusativ — wohin? (Bewegung)","Idem <i>u grad</i>. — Ich gehe in die Stadt."]],
+   rule:"<code>u</code> + Lokativ = Ort · <code>iz</code> + Genitiv = Herkunft · <code>u</code> + Akkusativ = Richtung"},
+ drustvo:{title:"s prijateljem ↔ kod prijatelja",sub:"Begleitung vs. Aufenthalt",rows:[
+   ["s prijateljem","Instrumental — mit wem?","Idem <i>s prijateljem</i>. — Ich gehe mit dem Freund."],
+   ["kod prijatelja","Genitiv — bei wem?","Sam <i>kod prijatelja</i>. — Ich bin bei einem Freund."]],
+   rule:"<code>s(a)</code> + Instrumental = Begleitung · <code>kod</code> + Genitiv = Aufenthalt"},
+ biti3:{title:"je ↔ nije",sub:"ist ↔ ist nicht (biti, 3. SG)",rows:[
+   ["je","biti 3. SG positiv","On <i>je</i> tu. — Er ist da."],
+   ["nije","biti 3. SG verneint","On <i>nije</i> tu. — Er ist nicht da."]],
+   rule:"Verneinung von biti ist <b>verschmolzen</b>: sam→<code>nisam</code>, si→<code>nisi</code>, je→<code>nije</code> …"},
+ person:{title:"govoriš ↔ govorite",sub:"du (informell) ↔ Sie (formell)",rows:[
+   ["govoriš","2. SG — du (vertraut)","<i>Govoriš</i> li hrvatski? — Sprichst du Kroatisch?"],
+   ["govorite","2. PL — Sie (höflich) / ihr","<i>Govorite</i> li hrvatski? — Sprechen Sie Kroatisch?"]],
+   rule:"Höflichkeitsform = 2. Plural (wie frz. <i>vous</i>): <code>-iš</code> → <code>-ite</code>"},
+};
+/* ===================================================================== */
+/* GRAMMATIK-DATENBANK — strukturiert, als „Code/Lookup" für Michael.     */
+/* Block-Typen: ["p",html] ["formula",txt] ["case",caseKey]              */
+/*   ["conj",verbKey] ["contrast",contrastKey] ["table",caption,rows,head]*/
+/* ===================================================================== */
+const GRAMMAR=[
+ {id:"kasus",icon:"🎯",title:"Kasus-System",sub:"6 Fälle als enum + Endungs-Lookup",blocks:[
+   ["p","Kroatisch markiert die <b>Rolle</b> eines Nomens über die <b>Endung</b> (nicht über die Wortstellung). Denk es als <code>case = enum{NOM,AKK,GEN,DAT,LOK,INS}</code> — der Auslöser (Verb/Präposition) bestimmt den Wert."],
+   ["case","nominativ"],["case","akuzativ"],["case","genitiv"],["case","dativ"],["case","lokativ"],["case","instrumental"],
+   ["table","Endungs-Lookup Singular (Grundmuster)",[
+     ["f auf -a","-a","-u","-e","-i","-i","-om"],
+     ["m Konsonant (unbelebt)","∅","∅","-a","-u","-u","-om/-em"],
+     ["m Konsonant (belebt)","∅","-a","-a","-u","-u","-om/-em"],
+     ["n auf -o/-e","-o/-e","-o/-e","-a","-u","-u","-om/-em"]],
+     ["Typ","NOM","AKK","GEN","DAT","LOK","INS"]],
+   ["p","<b>Merksatz:</b> Akkusativ <b>maskulin belebt = Genitiv</b> (<code>vidim prijatelja</code>), maskulin unbelebt = Nominativ (<code>vidim grad</code>). Neutrum bleibt im Akk immer wie Nom."]]},
+ {id:"verben",icon:"⚙️",title:"Präsens-Verben",sub:"3 Konjugationsklassen als Funktionssignatur",blocks:[
+   ["p","Präsens = <code>stamm + endung</code>. Die Klasse erkennst du am Bindevokal der Endung: <b>a</b>-Klasse (<code>-am</code>), <b>i</b>-Klasse (<code>-im</code>), <b>e</b>-Klasse (<code>-em</code>)."],
+   ["formula","conjugate(stem, klasse) → [ja, ti, on, mi, vi, oni]"],
+   ["table","Endungs-Lookup (Person × Klasse)",[
+     ["1. SG (ja)","-am","-im","-em"],
+     ["2. SG (ti)","-aš","-iš","-eš"],
+     ["3. SG (on/ona)","-a","-i","-e"],
+     ["1. PL (mi)","-amo","-imo","-emo"],
+     ["2. PL (vi)","-ate","-ite","-ete"],
+     ["3. PL (oni)","-aju","-e","-u"]],
+     ["Person","a-Klasse","i-Klasse","e-Klasse"]],
+   ["conj","imati"],["conj","govoriti"],["conj","piti"],
+   ["p","<b>Unregelmäßige</b> lernst du als Tripel <code>(infinitiv, ja-Form, Klasse)</code> auswendig — siehe biti, htjeti, moći, ići unten."],
+   ["conj","htjeti"],["conj","moci"],["conj","ici"]]},
+ {id:"biti",icon:"🟰",title:"biti (sein)",sub:"positiv · verneint · Frage",blocks:[
+   ["p","<b>biti</b> ist hochfrequent und unregelmäßig. Es hat <b>betonte</b> (jesam) und <b>klitische</b> (sam) Formen — im Alltag fast immer die klitische, an <b>zweiter</b> Satzposition."],
+   ["conj","biti"],
+   ["table","biti — positiv / verneint / Frage",[
+     ["ja","sam","nisam","jesam li"],
+     ["ti","si","nisi","jesi li"],
+     ["on/ona","je","nije","je li"],
+     ["mi","smo","nismo","jesmo li"],
+     ["vi","ste","niste","jeste li"],
+     ["oni","su","nisu","jesu li"]],
+     ["Person","+","−","?"]],
+   ["contrast","biti3"]]},
+ {id:"negacija",icon:"🚫",title:"Verneinung",sub:"ne + Verb · ni-Verschmelzung",blocks:[
+   ["formula","negate(verb) → 'ne' + verb"],
+   ["p","Standard: <b>ne</b> direkt vor das Verb — <code>ne razumijem</code>, <code>ne pijem</code>. Drei Verben verschmelzen: <b>biti</b> → nisam …, <b>imati</b> → <code>nemam</code>, <b>htjeti</b> → <code>neću</code>."],
+   ["table","Verschmolzene Verneinung",[
+     ["biti (sein)","nisam, nisi, nije, nismo, niste, nisu"],
+     ["imati (haben)","nemam, nemaš, nema, nemamo, nemate, nemaju"],
+     ["htjeti (wollen)","neću, nećeš, neće, nećemo, nećete, neće"]],
+     ["Verb","Formen"]],
+   ["p","<b>Doppelte Verneinung ist Pflicht:</b> <code>Nitko ne dolazi.</code> (Niemand kommt — wörtl. „niemand nicht kommt“)."]]},
+ {id:"pitanja",icon:"❓",title:"Fragen",sub:"li-Position · Fragewörter",blocks:[
+   ["formula","ja_nein_frage = Verb + 'li' + Rest"],
+   ["p","Ja/Nein-Frage: <b>li</b> steht direkt <b>nach dem Verb</b> (zweite Position). <code>Govoriš li hrvatski?</code> Bei biti: <code>Jesi li umoran?</code> / <code>Je li tu?</code>"],
+   ["table","Fragewörter (enum)",[
+     ["tko","wer"],["što","was"],["gdje","wo"],["kamo","wohin"],["odakle","woher"],
+     ["kada","wann"],["kako","wie"],["zašto","warum"],["koliko","wie viel"]],
+     ["HR","DE"]],
+   ["contrast","person"]]},
+ {id:"brojevi",icon:"🔢",title:"Zahlen & Mengen",sub:"1 / 2–4 / 5+ als Verzweigung",blocks:[
+   ["formula","numerus(n) = n==1 ? NomSg : n in 2..4 ? Paukal : GenPl"],
+   ["table","Was folgt auf die Zahl?",[
+     ["1 (jedan/jedna)","Nominativ Singular","jedna jabuka"],
+     ["2, 3, 4","Paukal (= Gen Sg-Form)","dvije jabuke, tri dana"],
+     ["5 und mehr","Genitiv Plural","pet jabuka, deset eura"]],
+     ["Zahl","Form","Beispiel"]],
+   ["p","<b>jedan</b> richtet sich nach Genus: <code>jedan grad</code> (m), <code>jedna kava</code> (f), <code>jedno more</code> (n). 2 hat eine f-Form: <code>dva</code> (m/n) vs. <code>dvije</code> (f)."]]},
+ {id:"pridjevi",icon:"🎨",title:"Adjektiv-Kongruenz",sub:"Adjektiv folgt Genus/Numerus/Kasus",blocks:[
+   ["formula","adjektiv.endung = match(nomen.genus, nomen.kasus)"],
+   ["table","Nominativ Singular",[
+     ["maskulin","∅ (oder -i)","velik grad, dobar dan"],
+     ["feminin","-a","velika kuća, dobra kava"],
+     ["neutrum","-o","veliko more, dobro jutro"]],
+     ["Genus","Endung","Beispiel"]],
+   ["p","Das Adjektiv steht <b>vor</b> dem Nomen und stimmt in Genus, Numerus und Kasus überein: <code>u velikom gradu</code> (Lok m), <code>nemam dobru kavu</code> (Akk f)."]]},
+ {id:"klitike",icon:"📐",title:"Klitika-Reihenfolge",sub:"feste Position 2 — wie ein Stack",blocks:[
+   ["p","Klitika (unbetonte Kurzwörter) stehen an <b>zweiter</b> Satzposition, in <b>fester Reihenfolge</b> — denk an einen festen Stack:"],
+   ["formula","[li] → [biti/htjeti-aux] → [DAT] → [AKK/GEN] → [se] → [je]"],
+   ["table","Beispiele",[
+     ["Kako se zoveš?","se = sich (Reflexiv)"],
+     ["Drago mi je.","mi (DAT) vor je"],
+     ["Jesi li ga vidio?","li vor ga (AKK)"]],
+     ["Satz","Hinweis"]],
+   ["p","<b>Ausnahme:</b> <code>je</code> (biti 3.SG) steht ganz am Ende der Klitikakette — außer bei <code>se</code>: <code>nije se</code>."]],
+  },
+ {id:"kontrasti",icon:"🔀",title:"Minimal-Kontraste",sub:"gleiche Wurzel, anderer Fall",blocks:[
+   ["p","Diese Paare/Tripel unterscheiden sich nur in der Endung — genau hier entscheidet sich A1-Grammatik. Lies sie als Lookup."],
+   ["contrast","kava"],["contrast","grad"],["contrast","prijatelj"],
+   ["contrast","mjesto"],["contrast","drustvo"]]},
+];
+function genderWhy(it){
+  var w=it.hr[0]; var g={m:"maskulin",f:"feminin",n:"neutrum"}[it.g];
+  var rule = it.g==="f" ? "Endung <b>-a</b> → meist feminin"
+           : it.g==="n" ? "Endung <b>-o</b> oder <b>-e</b> → meist neutrum"
+           : "endet auf Konsonant → meist maskulin";
+  return "<code>"+w+"</code> ist <b>"+g+"</b>. Faustregel: "+rule+". (Ausnahmen gibt es, z. B. <code>noć</code> ist feminin trotz Konsonant.)";
+}
+function conjTable(key){
+  var c=CONJ[key]; if(!c)return "";
+  var persons=["ja","ti","on / ona","mi","vi","oni"], forms;
+  if(c.irr) forms=c.f.map(esc);
+  else forms=c.e.map(function(end){return esc(c.stem)+((end&&end!=="—")?("<b>"+esc(end)+"</b>"):"");});
+  var rows=persons.map(function(pn,i){return "<tr><td class=\"p\">"+pn+"</td><td class=\"f\">"+forms[i]+"</td></tr>";}).join("");
+  return "<table class=\"conj\"><caption>"+esc(c.inf)+"</caption>"+rows+"</table>";
+}
+/* Dialog-Auswahl ohne Wiederholung */
+let recentDlg=[];
+function pickDialog(){
+  var avail=DIALOGS.filter(function(d){return recentDlg.indexOf(d.id)<0;});
+  var pool=avail.length?avail:DIALOGS;
+  var d=pool[Math.floor(Math.random()*pool.length)];
+  recentDlg.push(d.id); if(recentDlg.length>Math.min(25,DIALOGS.length-1))recentDlg.shift();
+  return d;
+}
+/* Deutsch-Abgleich fuer Richtung HR -> DE */
+function germanForms(it){
+  var out=[];
+  it.de.split("/").forEach(function(s){
+    s=s.replace(/\s*\(.*?\)\s*/g," ").trim();
+    if(s) out.push(s);
+    var m=s.replace(/^(der|die|das|ein|eine|den|dem)\s+/i,"");
+    if(m && m!==s) out.push(m);
+  });
+  return out.filter(function(v,i){return out.indexOf(v)===i;});
+}
+function deDe(s){return (s||"").toLowerCase().replace(/ß/g,"ss").replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue");}
+function matchDe(input,variants){var g=norm(input);var v=variants.map(norm);
+  if(v.indexOf(g)>=0)return "ok"; if(v.some(function(x){return deDe(x)===deDe(g);}))return "near"; return "no";}
+/* Themen & Kategorien */
+const VTOPICS=[["social","Begrüßung & Höflichkeit"],["people","Personen & Vorstellen"],["numbers","Zahlen"],["verbs","Verben"],["food","Essen & Trinken"],["money","Einkaufen & Geld"],["city","Stadt & Orte"],["travel","Reisen & Verkehr"],["home","Zuhause"],["time","Zeit & Tage"],["weather","Wetter"],["animals","Tiere"],["adjectives","Adjektive & Farben"],["smallwords","Kleine Wörter & Fragen"],["things","Dinge & Sonstiges"]];
+const GTOPICS=[["akk","Akkusativ"],["gen","Genitiv"],["lok","Lokativ"],["dat","Dativ"],["ins","Instrumental"],["praesens","Präsens (Verben)"],["biti","biti – sein"],["neg","Verneinung"],["frage","Fragen (li)"],["num","Zahlen & Mengen"]];
+const CAT2CASE={akk:"akuzativ",gen:"genitiv",lok:"lokativ",dat:"dativ",ins:"instrumental"};
+// Brücke von Aufgaben-Kategorie zur Grammatik-Datenbank-Sektion
+const CAT2GRAMMAR={akk:"kasus",gen:"kasus",lok:"kasus",dat:"kasus",ins:"kasus",praesens:"verben",biti:"biti",neg:"negacija",frage:"pitanja",num:"brojevi"};
+const TOPIC_OVERRIDE={
+ covjek:"people",zena:"people",muskarac:"people",dijete:"people",prijatelj:"people",obitelj:"people",
+ grad:"city",skola:"city",posao:"city",kuca:"home",soba:"home",stol:"home",
+ more:"travel",auto:"travel",vlak:"travel",knjiga:"things",dan:"time",noc:"time",novac:"money",pas:"animals",macka:"animals",
+ caj:"food",juha:"food",riba:"food",sladoled:"food",pivo:"food",vino:"food",cokolada:"food",dorucak:"food",jelo:"food",casa:"food",
+ jelovnik:"money",racun:"money",kartica:"money",gotovina:"money",vrecica:"money",blagajna:"money",popust:"money",poklon:"money",euro:"money",cijena:"money",velicina:"money",boja:"money",
+ banka:"city",centar:"city",trznica:"city",toalet:"city",plan:"city",stanica:"city",kolodvor:"city",kino:"city",setnja:"city",
+ ravno:"city",lijevo:"city",desno:"city",blizu:"city",daleko:"city",tamo:"city",ovdje:"city",
+ autobus:"travel",taksi:"travel",karta:"travel",hotel:"travel",kljuc:"travel",
+ hrvatska:"people",njemacka:"people",austrija:"people",
+ sat:"time",minuta:"time",vikend:"time",veceras:"time",jutro:"time",godina:"time",
+ vrijeme:"weather",kisa:"weather",snijeg:"weather",sunce:"weather",
+ brat:"people",sestra:"people",prijateljica:"people",ljubimac:"animals",
+ ekonomija:"things",lijek:"things",glava:"things",glavobolja:"things",rodjendan:"social"
+};
+function topicOf(it){
+  if(TOPIC_OVERRIDE[it.id])return TOPIC_OVERRIDE[it.id];
+  if(it.type==="chunk")return "social";
+  var t=it.tags||[];
+  if(t.indexOf("food")>=0)return "food";
+  if(t.indexOf("verb")>=0)return "verbs";
+  if(t.indexOf("num")>=0)return "numbers";
+  if(t.indexOf("day")>=0)return "time";
+  if(t.indexOf("color")>=0)return "adjectives";
+  if(t.indexOf("adj")>=0)return "adjectives";
+  if(t.indexOf("pron")>=0)return "people";
+  if(t.indexOf("q")>=0||t.indexOf("func")>=0)return "smallwords";
+  return "things";
+}
+//SIMEND
+
+
+/* ===================================================================== */
+/* SPEICHER                                                              */
+/* ===================================================================== */
+const KEY="hr_a1_progress_v1";
+const Store=(()=>{
+  let mem=null, backend="memory";
+  async function load(){
+    try{const r=await fetch("/api/load");if(r.ok){const j=await r.json();backend="datei";return (j&&Object.keys(j).length)?j:null;}}catch(e){}
+    try{const v=localStorage.getItem(KEY);if(v){backend="local";return JSON.parse(v);}}catch(e){}
+    return mem;
+  }
+  async function save(o){mem=o;
+    try{const r=await fetch("/api/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)});if(r.ok){backend="datei";return;}}catch(e){}
+    try{localStorage.setItem(KEY,JSON.stringify(o));backend="local";return;}catch(e){}
+    backend="memory";
+  }
+  async function clear(){mem=null;
+    try{await fetch("/api/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(freshP())});}catch(e){}
+    try{localStorage.removeItem(KEY);}catch(e){}
+  }
+  return {load,save,clear,info:()=>backend};
+})();
+
+let P=null;
+function freshP(){return {ver:2,srs:{},streak:{last:null,days:0,longest:0},stats:{correct:0,total:0},settings:{newPerSession:8,apply:true,theme:""}};}
+
+/* ===================================================================== */
+/* SRS (Leitner / SM-2-lite)                                            */
+/* ===================================================================== */
+const DAY=86400000, MIN=60000;
+const STEPS=[1,10];                 // Lern-Schritte (Minuten)
+const DAYS=[1,3,7,16,35,75];        // Box-Intervalle (Tage)
+function srsOf(id){return P.srs[id];}
+function introduce(id){ if(!P.srs[id]) P.srs[id]={box:0,due:Date.now(),reps:0,lapses:0,learning:true,step:0,prod:0}; }
+
+/* ---------------------------------------------------------------------
+   SRS mit Format-Gewichtung.
+   kind = 'recog'  -> Wiedererkennen (MC, Match, Genus): zählt WENIGER.
+          'prod'   -> Produktion (Tippen, Lücke, Satzbau, freier Abruf): voll.
+          'transfer' -> Anwendung (Dialog): wie Produktion, leicht bonusbar.
+   Regeln:
+   - 'recog' kann beim Graduieren höchstens Box 1 erreichen und im Review
+     die Box nur langsam (wie 'hard') wachsen lassen. Es setzt KEIN prod-Flag.
+   - 'prod'/'transfer' geben vollen Kredit und erhöhen prod (Produktions-Belege).
+   - 'isLearned' verlangt zusätzlich mindestens einen Produktions-Beleg.
+--------------------------------------------------------------------- */
+function updateSrs(id,q,kind){            // q: 'again'|'hard'|'good'|'easy'
+  kind=kind||"prod";
+  const now=Date.now(); const recog=(kind==="recog");
+  let s=P.srs[id]||{box:0,due:now,reps:0,lapses:0,learning:true,step:0,prod:0};
+  if(s.prod===undefined)s.prod=0;
+  // Wiedererkennen darf nie als 'easy' durchschlagen
+  let eq=q; if(recog&&eq==="easy")eq="good";
+  if(eq==="again"){ s.learning=true; s.step=0; s.lapses++; s.box=Math.max(0,s.box-1); s.due=now+1*MIN; s.lastWrong=now; }
+  else if(s.learning){
+    if(s.step<STEPS.length-1 && eq!=="easy"){ s.step++; s.due=now+STEPS[s.step]*MIN; }
+    else { s.learning=false; s.box=(eq==="easy"&&!recog)?2:1; s.due=now+DAYS[s.box-1]*DAY; }
+  } else {
+    // Review: Wiedererkennen wächst wie 'hard' (nur halber Schritt) und deckelt bei Box 3
+    let grow = recog ? (eq==="again"?-1:0)+ (eq==="good"||eq==="easy"?1:0)
+                     : (eq==="hard"?0:eq==="easy"?2:1);
+    if(recog) grow=Math.min(grow,1);
+    s.box=Math.min(DAYS.length, s.box+grow); if(s.box<1)s.box=1;
+    if(recog) s.box=Math.min(s.box,3);   // ohne Produktion nicht über Box 3
+    const mult=(recog||eq==="hard")?0.7:eq==="easy"?1.35:1;
+    s.due=now+Math.max(1,Math.round(DAYS[s.box-1]*mult))*DAY;
+  }
+  if(eq!=="again" && !recog) s.prod=(s.prod||0)+1;   // Produktions-Beleg
+  s.reps++; P.srs[id]=s;
+  P.stats.total++; if(eq!=="again")P.stats.correct++;
+}
+// „beherrscht" = stabil (Box≥2) UND mindestens einmal aktiv produziert
+function isLearned(id){const s=P.srs[id];return s&&!s.learning&&s.box>=2&&(s.prod||0)>=1;}
+function endOfToday(){const d=new Date();d.setHours(23,59,59,999);return d.getTime();}
+function dueCount(){const t=endOfToday();return ITEMS.filter(it=>{const s=P.srs[it.id];return s&&s.due<=t;}).length;}
+function masteryPct(){const l=ITEMS.filter(it=>isLearned(it.id)).length;return Math.round(l/ITEMS.length*100);}
+function learnedCount(){return ITEMS.filter(it=>isLearned(it.id)).length;}
+function seenCount(){return Object.keys(P.srs).length;}
+// Schwachstellen: Items mit Patzern (lapses) – höchste zuerst, dann zuletzt falsch
+function weakPool(filter){
+  return ITEMS.filter(it=>{const s=P.srs[it.id];return s&&(s.lapses||0)>0&&(!filter||filter(it));})
+    .sort((a,b)=>{const A=P.srs[a.id],B=P.srs[b.id];
+      return (B.lapses-A.lapses)||((B.lastWrong||0)-(A.lastWrong||0));});
+}
+function weakCount(){return weakPool().length;}
+function lapseCount(){return ITEMS.reduce((n,it)=>{const s=P.srs[it.id];return n+(s&&(s.lapses||0)>0?1:0);},0);}
+// Sanfte Migration: ältere Fortschritts-Objekte auf das aktuelle Schema heben,
+// OHNE bestehenden Fortschritt zu verlieren. Idempotent.
+function migrateP(p){
+  if(!p)return p;
+  if(p.ver===undefined)p.ver=1;
+  if(!p.srs)p.srs={};
+  if(!p.streak)p.streak={last:null,days:0,longest:0};
+  if(!p.stats)p.stats={correct:0,total:0};
+  if(!p.settings)p.settings={};
+  const sd=p.settings;
+  if(sd.newPerSession===undefined)sd.newPerSession=8;
+  if(sd.apply===undefined)sd.apply=true;
+  if(sd.theme===undefined)sd.theme="";
+  // Pro SRS-Eintrag: neues Feld prod ergänzen. Wer schon Box≥2 erreicht hat,
+  // bekommt prod=1 gutgeschrieben, damit „beherrscht" nicht plötzlich fällt.
+  Object.keys(p.srs).forEach(id=>{const s=p.srs[id];if(!s)return;
+    if(s.prod===undefined)s.prod=(!s.learning&&s.box>=2)?1:0;
+    if(s.lapses===undefined)s.lapses=0;});
+  p.ver=2;
+  return p;
+}
+
+function dateStr(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+function bumpStreak(){
+  const today=dateStr(new Date());
+  if(P.streak.last===today)return;
+  const y=dateStr(new Date(Date.now()-DAY));
+  P.streak.days=(P.streak.last===y)?P.streak.days+1:1;
+  P.streak.last=today; P.streak.longest=Math.max(P.streak.longest||0,P.streak.days);
+}
+
+async function persist(){await Store.save(P);}
+
+/* ===================================================================== */
+/* SESSION-AUFBAU                                                        */
+/* ===================================================================== */
+function pickFormat(it){
+  const s=P.srs[it.id]; const box=s?(s.learning?0:s.box):0;
+  if(it.type==="fill")return "fill";
+  // gelegentlich Genus-Drill für Nomen
+  if(it.type==="vocab"&&it.g&&Math.random()<0.28)return "gender";
+  const words=(it.hr[0]||"").trim().split(/\s+/).length;
+  if(box<=0)return (it.type==="vocab"&&Math.random()<0.4)?"type":"mc";
+  if(box===1)return (words>=2&&words<=5)?"build":"type";
+  if(box===2)return "type";
+  return Math.random()<0.5?"flash":"type";
+}
+function newPool(filter){
+  return ITEMS.filter(it=>!P.srs[it.id]&&(!filter||filter(it)));
+}
+function duePool(filter){
+  const now=Date.now();
+  return ITEMS.filter(it=>{const s=P.srs[it.id];return s&&s.due<=now&&(!filter||filter(it));})
+              .sort((a,b)=>P.srs[a.id].due-P.srs[b.id].due);
+}
+function buildCards(mode){
+  let filter=null, includeApply=false, cap=P.settings.newPerSession, withWarmup=false, maxDue=40;
+  if(mode==="vocab")filter=it=>it.type==="vocab"||it.type==="chunk";
+  else if(mode==="grammar")filter=it=>it.type==="fill"||(it.type==="vocab"&&it.g);
+  else if(mode==="quick"){cap=2;maxDue=5;}
+  else if(mode==="review"){cap=0;withWarmup=true;maxDue=60;} // nur Wiederholung, keine neuen
+  else {includeApply=P.settings.apply;withWarmup=true;} // daily
+  let due=duePool(filter).slice(0,maxDue);
+  let news=newPool(filter).slice(0,cap);
+  let cards=[];
+  if(withWarmup){
+    const wm=shuffle(ITEMS.filter(it=>P.srs[it.id]&&(it.type==="vocab"||it.type==="chunk"))).slice(0,4);
+    if(wm.length===4)cards.push({format:"match",items:wm});}
+  news.forEach(it=>{introduce(it.id);cards.push({item:it,format:"intro",isNew:true});});
+  let drill=shuffle([...due,...news]);
+  drill.forEach(it=>{const f=pickFormat(it);const card={item:it,format:f};
+    if(f==="type"&&it.type==="vocab")card.dir=Math.random()<0.5?"de":"hr";
+    cards.push(card);});
+  return {cards,includeApply,mode};
+}
+
+function buildPractice(filter,size){
+  size=size||18; const now=Date.now();
+  const pool=ITEMS.filter(it=>!filter||filter(it));
+  if(!pool.length)return {cards:[],includeApply:false,mode:"practice"};
+  const due=pool.filter(it=>{const s=P.srs[it.id];return s&&s.due<=now;}).sort((a,b)=>P.srs[a.id].due-P.srs[b.id].due);
+  const fresh=pool.filter(it=>!P.srs[it.id]).slice(0,P.settings.newPerSession);
+  const seen=pool.filter(it=>P.srs[it.id]).sort((a,b)=>P.srs[a.id].due-P.srs[b.id].due);
+  const chosen=[], ids=new Set();
+  function add(it){if(!ids.has(it.id)){ids.add(it.id);chosen.push(it);}}
+  due.forEach(add); fresh.forEach(it=>{introduce(it.id);add(it);});
+  for(const it of seen){if(chosen.length>=size)break;add(it);}
+  if(chosen.length<size){for(const it of shuffle(pool)){if(chosen.length>=size)break;add(it);}}
+  const sel=chosen.slice(0,size);
+  const cards=[], freshIds=new Set(fresh.map(i=>i.id));
+  sel.forEach(it=>{if(freshIds.has(it.id))cards.push({item:it,format:"intro",isNew:true});});
+  shuffle(sel).forEach(it=>{const f=pickFormat(it);const card={item:it,format:f};
+    if(f==="type"&&it.type==="vocab")card.dir=Math.random()<0.5?"de":"hr";cards.push(card);});
+  return {cards,includeApply:false,mode:"practice"};
+}
+
+// Schwachstellen-Runde: Items mit den meisten Patzern, in Produktionsformaten.
+function buildWeak(filter){
+  const pool=weakPool(filter);
+  if(!pool.length)return {cards:[],includeApply:false,mode:"weak"};
+  const sel=pool.slice(0,18);
+  const cards=[];
+  shuffle(sel).forEach(it=>{const f=pickFormat(it);const card={item:it,format:f};
+    if(f==="type"&&it.type==="vocab")card.dir=Math.random()<0.5?"de":"hr";cards.push(card);});
+  return {cards,includeApply:false,mode:"weak"};
+}
+/* ===================================================================== */
+/* UI-Helfer + Sonderzeichen                                            */
+/* ===================================================================== */
+const $=s=>document.querySelector(s);
+const LETTERS=["č","ć","đ","š","ž"]; let shiftOn=false;
+function norm(s){return (s||"").toLowerCase().replace(/[.,!?;:"„""»«']/g,"").replace(/\s+/g," ").trim();}
+function deacc(s){return s.replace(/č/g,"c").replace(/ć/g,"c").replace(/đ/g,"d").replace(/š/g,"s").replace(/ž/g,"z");}
+function matchAns(input,variants){const g=norm(input);const v=variants.map(norm);
+  if(v.includes(g))return "ok"; if(v.some(x=>deacc(x)===deacc(g)))return "near"; return "no";}
+// Levenshtein (klein, für Tippfehler-Erkennung 1 Zeichen)
+function lev(a,b){a=a||"";b=b||"";const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
+  let prev=Array.from({length:n+1},(_,i)=>i),cur=new Array(n+1);
+  for(let i=1;i<=m;i++){cur[0]=i;for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;
+    cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+c);}[prev,cur]=[cur,prev];}
+  return prev[n];}
+// Differenzierte Beinahe-Diagnose: Diakritik vs. Tippfehler
+function diagnoseNear(raw,sol){
+  const r=norm(raw||""), s=norm(sol||"");
+  if(r&&s&&deacc(r)===deacc(s)&&r!==s)return "nur Diakritik (č ć đ š ž)";
+  if(lev(r,s)===1)return "ein Tippfehler";
+  return "fast richtig";}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function esc(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function distractors(it,n){
+  const pool=ITEMS.filter(x=>x.type===it.type&&x.id!==it.id&&x.hr&&x.hr[0]);
+  return shuffle(pool).slice(0,n).map(x=>x.hr[0]);
+}
+function keycapsHTML(){
+  return `<div class="keys" data-keys>
+    <button class="key shift" data-shift aria-pressed="false">⇧ ABC</button>
+    ${LETTERS.map(l=>`<button class="key" data-l="${l}">${l}</button>`).join("")}
+  </div>`;
+}
+function wireKeys(scope,input){
+  const wrap=scope.querySelector("[data-keys]"); if(!wrap)return;
+  wrap.addEventListener("mousedown",e=>{const k=e.target.closest(".key");if(!k)return;e.preventDefault();
+    if(k.hasAttribute("data-shift")){shiftOn=!shiftOn;k.setAttribute("aria-pressed",shiftOn);
+      k.textContent=shiftOn?"⇧ ÁBC":"⇧ ABC";
+      wrap.querySelectorAll(".key[data-l]").forEach((b,i)=>{const ch=shiftOn?LETTERS[i].toUpperCase():LETTERS[i];b.dataset.l=ch;b.textContent=ch;});
+      return;}
+    if(input.disabled)return;const s=input.selectionStart,en=input.selectionEnd;
+    input.value=input.value.slice(0,s)+k.dataset.l+input.value.slice(en);
+    input.selectionStart=input.selectionEnd=s+k.dataset.l.length;input.focus();
+  });
+}
+
+/* ===================================================================== */
+/* SESSION-RUNNER                                                        */
+/* ===================================================================== */
+let S=null; // {plan, i}
+function startSession(mode,filter,title){
+  let plan;
+  if(mode==="daily") plan=buildCards("daily");
+  else if(mode==="review") plan=buildCards("review");
+  else if(mode==="weak") plan=buildWeak(filter);
+  else plan=buildPractice(filter, mode==="quick"?6:18);
+  if((!plan||!plan.cards.length) && mode==="daily") plan=buildPractice(null,18);
+  if(!plan||!plan.cards.length){
+    if(mode==="weak") alert("Super — aktuell keine offenen Fehler. Übe einfach normal weiter!");
+    else if(mode==="review") alert("Aktuell ist nichts zur Wiederholung fällig. Starte eine Tagesrunde für neue Items.");
+    else alert("Hier gibt es gerade nichts zu üben.");
+    return;
+  }
+  S={plan,i:0,repair:[],repaired:false};
+  $("#home").classList.add("hidden"); $("#dialog").classList.add("hidden"); $("#select").classList.add("hidden"); $("#grammar").classList.add("hidden");
+  $("#session").classList.remove("hidden");
+  $("#sessTitle").textContent=title||({daily:"Tagesrunde",quick:"Schnellrunde",weak:"Fehler wiederholen",review:"Nur Wiederholung"})[mode]||"Übung";
+  renderCard();
+}
+function flashHome(mode){
+  // nichts fällig & nichts neu
+  alert("Aktuell ist nichts fällig in diesem Modus — komm später wieder oder probier einen anderen Modus.");
+}
+function progressBar(){
+  const total=S.plan.cards.length;
+  $("#sessPos").textContent=(S.i)+"/"+total;
+  $("#sessBar").style.width=Math.round(S.i/total*100)+"%";
+}
+function advance(){ S.i++; persist(); renderCard(); }
+// „Repair after correction": falsch beantwortete Items einmal später erneut
+// AKTIV abfragen (Produktionsformat), statt nur die Lösung zu zeigen.
+function queueRepair(it){
+  if(!S||!it||S.repaired)return;          // nur eine Reparaturrunde pro Session
+  if(!S.repair.some(x=>x.id===it.id))S.repair.push(it);
+}
+function showExplainBox(ex,html){
+  var box=ex.querySelector(".explainbox");
+  if(!box){box=document.createElement("div");box.className="explainbox";
+    (ex.querySelector("[data-fb]")||ex.querySelector(".controls")).after(box);}
+  box.innerHTML=html;
+}
+function explainFill(ex,it){
+  var e=EXPL[it.id]||{}; var html='<div class="why">'+(e.why||it.hint||"")+'</div>';
+  var ck=e.case||(it.tags&&CAT2CASE[it.tags[0]])||null;
+  if(ck&&CASES[ck]){var k=CASES[ck];
+    html+='<div class="caserole"><b>Kasus: '+k.n+'</b><br>Rolle: '+k.role+'<br>Auslöser: '+k.trig+'</div>';}
+  var vk=e.verb||it.verb;
+  if(vk&&CONJ[vk]) html+=conjTable(vk);
+  var sec=(it.tags&&CAT2GRAMMAR[it.tags[0]])||(ck?"kasus":null);
+  if(sec&&grammarSectionById(sec)) html+='<div class="glink"><button data-glink="'+sec+'">→ in der Grammatik-DB öffnen: '+esc(grammarSectionById(sec).title)+'</button></div>';
+  showExplainBox(ex,html);
+  var lb=ex.querySelector("[data-glink]");
+  if(lb)lb.onclick=function(){openGrammar(lb.dataset.glink,function(){$("#grammar").classList.add("hidden");$("#session").classList.remove("hidden");});};
+}
+function renderCard(){
+  progressBar();
+  if(S.i>=S.plan.cards.length){
+    // Reparaturrunde anhängen (einmalig): zuvor falsche Items aktiv erneut abfragen
+    if(!S.repaired && S.repair.length){
+      S.repaired=true;
+      const extra=S.repair.map(it=>{
+        const f=(it.type==="fill")?"fill":"type";
+        const card={item:it,format:f,repair:true};
+        if(f==="type"&&it.type==="vocab")card.dir="hr"; // Produktion DE→HR
+        return card;});
+      S.plan.cards=S.plan.cards.concat(extra); S.repair=[];
+    }
+    if(S.i>=S.plan.cards.length){ return finishSession(); }
+  }
+  const c=S.plan.cards[S.i]; const ex=$("#exArea"); shiftOn=false;
+  if(c.format==="match") return renderMatch(c,ex);
+  const it=c.item;
+  const rep=c.repair?" · nochmal":"";
+  const skill={intro:"Neu",mc:"Erkennen",type:"Tippen",fill:"Lücke",build:"Satzbau",gender:"Genus",flash:"Abruf"}[c.format];
+  let html=`<div class="tag-skill ${c.isNew?'new':''}">${c.isNew?'Neu · ':''}${skill}${rep}</div>`;
+  if(c.format==="intro"){
+    html+=`${it.emoji?`<div class="emoji">${it.emoji}</div>`:""}
+      <div class="prompt-de">${esc(it.hr[0])}</div>
+      <div class="reveal" style="color:var(--ink);font-size:18px;font-weight:600">${esc(it.de)}${it.g?` <span class="pos">${({m:"der",f:"die",n:"das"})[it.g]} · ${it.g.toUpperCase()}</span>`:""}</div>
+      ${it.hr.length>1?`<div class="hintline">auch: ${it.hr.slice(1).map(esc).join(", ")}</div>`:""}
+      <div class="controls"><button class="btn btn-primary btn-block" data-next>Verstanden →</button></div>`;
+    ex.innerHTML=html;
+    ex.querySelector("[data-next]").onclick=()=>advance();
+    return;
+  }
+  if(c.format==="mc"){
+    const correct=it.hr[0];
+    const opts=shuffle([correct,...distractors(it,3)]);
+    html+=`<div class="prompt-de">${esc(it.de)}</div>
+      ${it.emoji?`<div class="prompt-sub">${it.emoji}</div>`:""}
+      <div class="choices">${opts.map(o=>`<button class="choice" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>
+      <div class="fb" data-fb></div>`;
+    ex.innerHTML=html;
+    ex.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{
+      const ok=norm(b.dataset.o)===norm(correct);
+      ex.querySelectorAll(".choice").forEach(x=>{x.disabled=true;
+        if(norm(x.dataset.o)===norm(correct))x.classList.add("correct");});
+      if(!ok)b.classList.add("wrong");
+      showGrade(ex,it,ok?"good":"again",correct,it.hr.slice(1),undefined,"recog");
+    });
+    return;
+  }
+  if(c.format==="gender"){
+    const map={m:"MASK",f:"FEM",n:"NEUTR"};
+    html+=`<div class="prompt-de">${esc(it.hr[0])}</div>
+      <div class="prompt-sub">${esc(it.de)} — welches Genus?</div>
+      <div class="genus">${["m","f","n"].map(g=>`<button class="choice" data-g="${g}">${map[g]}</button>`).join("")}</div>
+      <div class="fb" data-fb></div>
+      <div class="controls" style="margin-top:8px"><button class="btn btn-ghost" data-explain>Erkläre mir</button></div>`;
+    ex.innerHTML=html;
+    ex.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{
+      const ok=b.dataset.g===it.g;
+      ex.querySelectorAll(".choice").forEach(x=>{x.disabled=true;if(x.dataset.g===it.g)x.classList.add("correct");});
+      if(!ok)b.classList.add("wrong");
+      showGrade(ex,it,ok?"good":"again",map[it.g]+` (${({m:"der",f:"die",n:"das"})[it.g]})`,[],undefined,"recog");
+    });
+    {const eb=ex.querySelector("[data-explain]");if(eb)eb.onclick=()=>showExplainBox(ex,'<div class="why">'+genderWhy(it)+'</div>');}
+    return;
+  }
+  if(c.format==="type"||c.format==="fill"){
+    const rev = c.format==="type" && c.dir==="de";          // HR -> DE
+    const answers = c.format==="fill" ? it.hr : (rev ? germanForms(it) : it.hr);
+    const dirTag = c.format==="type" ? (rev?" · HR→DE":" · DE→HR") : "";
+    html=`<div class="tag-skill ${c.isNew?'new':''}">${c.isNew?'Neu · ':''}${skill}${dirTag}${rep}</div>`;
+    html+=`<div class="prompt-de">${c.format==="fill"?it.de:(rev?esc(it.hr[0]):esc(it.de))}</div>
+      ${c.format==="fill"
+        ? `<div class="prompt-sub" style="font-size:18px;color:var(--ink);font-weight:600">${esc(it.sentence).replace("___",'<span style="color:var(--teal)">___</span>')}</div>`
+        : (!rev&&it.emoji?`<div class="prompt-sub">${it.emoji}</div>`:"")}
+      <textarea class="answer" rows="${c.format==='fill'?1:2}" placeholder="${c.format==='fill'?'fehlendes Wort…':(rev?'auf Deutsch…':'auf Kroatisch…')}" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+      ${rev?"":keycapsHTML()}
+      <div class="controls"><button class="btn btn-primary" data-check>Prüfen</button>
+        <button class="btn btn-ghost" data-hint>Tipp</button>${c.format==="fill"?'<button class="btn btn-ghost" data-explain>Erkläre mir</button>':""}</div>
+      <div class="fb" data-fb></div>`;
+    ex.innerHTML=html;
+    const ta=ex.querySelector(".answer"); wireKeys(ex,ta); setTimeout(()=>ta.focus(),20);
+    const checker=(c.format!=="fill"&&rev)?matchDe:matchAns;
+    const doCheck=()=>{
+      const raw=ta.value.trim(); if(!raw){ta.focus();return;}
+      const res=checker(raw,answers); ta.disabled=true;
+      ex.querySelector("[data-check]").style.display="none"; ex.querySelector("[data-hint]").style.display="none";
+      showGrade(ex,it,res==="ok"?"good":res==="near"?"near":"again",answers[0],answers.slice(1),raw);
+    };
+    ex.querySelector("[data-check]").onclick=doCheck;
+    ta.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();if(!ta.disabled)doCheck();}});
+    ex.querySelector("[data-hint]").onclick=()=>{
+      const h2 = c.format==="fill" ? (it.hint||"Achte auf die Endung.")
+                 : (rev ? "Übersetze ins Deutsche." : (it.g?`Genus: ${({m:'maskulin',f:'feminin',n:'neutrum'})[it.g]}`:"Achte auf die Endung."));
+      let hl=ex.querySelector(".hintline-x");
+      if(!hl){hl=document.createElement("div");hl.className="hintline hintline-x";ex.querySelector(".controls").after(hl);}
+      hl.innerHTML=`<b>Tipp:</b> ${esc(h2)}`;
+    };
+    const eb=ex.querySelector("[data-explain]"); if(eb)eb.onclick=()=>explainFill(ex,it);
+    return;
+  }
+  if(c.format==="build"){
+    const words=it.hr[0].split(/\s+/);
+    const bank=shuffle(words.map((w,i)=>({w,i})));
+    html+=`<div class="prompt-de">${esc(it.de)}</div>
+      <div class="build-target" data-target></div>
+      <div class="build-bank" data-bank>${bank.map(b=>`<button class="tile" data-w="${esc(b.w)}" data-i="${b.i}">${esc(b.w)}</button>`).join("")}</div>
+      <div class="controls"><button class="btn btn-primary" data-check disabled>Prüfen</button>
+        <button class="btn btn-ghost" data-clear>Leeren</button></div>
+      <div class="fb" data-fb></div>`;
+    ex.innerHTML=html;
+    const target=ex.querySelector("[data-target]"), checkBtn=ex.querySelector("[data-check]");
+    const refresh=()=>{checkBtn.disabled=target.children.length!==words.length;};
+    ex.querySelectorAll("[data-bank] .tile").forEach(t=>t.onclick=()=>{
+      t.classList.add("used");const clone=t.cloneNode(true);clone.classList.remove("used");
+      clone.onclick=()=>{clone.remove();t.classList.remove("used");refresh();};
+      target.appendChild(clone);refresh();});
+    ex.querySelector("[data-clear]").onclick=()=>{target.innerHTML="";ex.querySelectorAll("[data-bank] .tile").forEach(t=>t.classList.remove("used"));refresh();};
+    checkBtn.onclick=()=>{
+      const got=[...target.children].map(c=>c.dataset.w).join(" ");
+      const ok=norm(got)===norm(it.hr[0]);
+      checkBtn.disabled=true;ex.querySelector("[data-clear]").disabled=true;
+      showGrade(ex,it,ok?"good":"again",it.hr[0],it.hr.slice(1));
+    };
+    return;
+  }
+  if(c.format==="flash"){
+    html+=`<div class="prompt-de">${esc(it.de)}</div>
+      ${it.emoji?`<div class="prompt-sub">${it.emoji}</div>`:""}
+      <div class="reveal hidden" data-reveal>${esc(it.hr[0])}</div>
+      <div class="controls"><button class="btn btn-primary btn-block" data-show>Antwort zeigen</button></div>
+      <div class="grade hidden" data-grade>
+        <button class="again" data-q="again">Wieder<small>&lt;1 Min</small></button>
+        <button data-q="hard">Schwer<small>kürzer</small></button>
+        <button data-q="good">Gut<small>normal</small></button>
+        <button class="easy" data-q="easy">Leicht<small>länger</small></button>
+      </div>`;
+    ex.innerHTML=html;
+    ex.querySelector("[data-show]").onclick=()=>{
+      ex.querySelector("[data-reveal]").classList.remove("hidden");
+      ex.querySelector("[data-show]").parentElement.classList.add("hidden");
+      ex.querySelector("[data-grade]").classList.remove("hidden");
+    };
+    ex.querySelectorAll("[data-grade] button").forEach(b=>b.onclick=()=>{updateSrs(it.id,b.dataset.q,"prod");advance();});
+    return;
+  }
+}
+
+function showGrade(ex,it,quality,sol,alts,raw,kind){
+  kind=kind||"prod";
+  const fb=ex.querySelector("[data-fb]"); fb.className="fb show "+(quality==="ok"||quality==="good"?"ok":quality==="near"?"near":"no");
+  if(quality==="good"){fb.innerHTML=`<span class="t">✓ Točno</span><span class="sol">${esc(sol)}</span>`;}
+  else if(quality==="near"){fb.innerHTML=`<span class="t">Fast! ${diagnoseNear(raw,sol)}</span>Du: <b>${esc(raw||"")}</b><br><span class="sol">${esc(sol)}</span>`;}
+  else {fb.innerHTML=`<span class="t">${raw!==undefined?"Noch nicht":"Lösung"}</span><span class="sol">${esc(sol)}</span>${raw?`<div class="alt">Du: ${esc(raw)}</div>`:""}`;}
+  if(alts&&alts.length)fb.innerHTML+=`<div class="alt">auch: ${alts.map(esc).join(" · ")}</div>`;
+  // Bei Patzer (near/no) Item zur Reparatur später in derselben Runde vormerken
+  if((quality==="near"||quality==="again")) queueRepair(it);
+  // Controls: Weiter (+ ggf. "War richtig" bei near/no)
+  const ctr=document.createElement("div"); ctr.className="controls";
+  if(quality==="near"||quality==="again"){
+    const acc=document.createElement("button");acc.className="btn btn-ghost";acc.textContent="War richtig";
+    // ehrliche Wertung: Selbst-OK zählt nur als 'hard' (kleiner Schritt), nicht als 'good'
+    acc.onclick=()=>{updateSrs(it.id,"hard",kind);advance();};
+    ctr.appendChild(acc);
+  }
+  const nx=document.createElement("button");nx.className="btn btn-primary";nx.style.flex="1";nx.textContent="Weiter";
+  nx.onclick=()=>{updateSrs(it.id, quality==="good"?"good":(quality==="near"?"hard":"again"), kind);advance();};
+  ctr.appendChild(nx); ex.appendChild(ctr); nx.focus();
+}
+
+/* match-Übung */
+function renderMatch(c,ex){
+  const items=c.items;
+  const left=items.map(it=>({id:it.id,txt:it.de}));
+  const right=shuffle(items.map(it=>({id:it.id,txt:it.hr[0]})));
+  ex.innerHTML=`<div class="tag-skill">Aufwärmen · Paare</div>
+    <div class="prompt-sub" style="margin-bottom:8px">Tippe zusammengehörende Paare an.</div>
+    <div class="match">
+      <div class="col" data-left>${left.map(o=>`<button class="mbtn" data-side="l" data-id="${o.id}">${esc(o.txt)}</button>`).join("")}</div>
+      <div class="col" data-right>${right.map(o=>`<button class="mbtn" data-side="r" data-id="${o.id}">${esc(o.txt)}</button>`).join("")}</div>
+    </div>`;
+  let sel=null, done=0;
+  ex.querySelectorAll(".mbtn").forEach(b=>b.onclick=()=>{
+    if(b.classList.contains("done"))return;
+    if(!sel){sel=b;b.classList.add("sel");return;}
+    if(sel===b){b.classList.remove("sel");sel=null;return;}
+    if(sel.dataset.side===b.dataset.side){sel.classList.remove("sel");sel=b;b.classList.add("sel");return;}
+    // Paar prüfen
+    if(sel.dataset.id===b.dataset.id){
+      sel.classList.remove("sel");sel.classList.add("done");b.classList.add("done");
+      updateSrs(b.dataset.id,"good","recog");done++;
+      if(done===items.length){const ctr=document.createElement("div");ctr.className="controls";
+        const nx=document.createElement("button");nx.className="btn btn-primary btn-block";nx.textContent="Weiter";
+        nx.onclick=()=>advance();ctr.appendChild(nx);ex.appendChild(nx);nx.focus();}
+    } else {
+      b.classList.add("miss");const s=sel;setTimeout(()=>{b.classList.remove("miss");s.classList.remove("sel");},320);
+      updateSrs(sel.dataset.id,"again","recog");sel=null;
+    }
+  });
+}
+
+function finishSession(){
+  if(S.plan.includeApply){ // Tagesrunde -> Dialog anhängen
+    const dlg=pickDialog();
+    startDialog(dlg, true);
+    return;
+  }
+  showSummary();
+}
+function showSummary(){
+  bumpStreak(); persist(); refreshHome();
+  const ex=$("#exArea");
+  const total=S.plan.cards.reduce((n,c)=>n+(c.format==="match"?c.items.length:1),0);
+  ex.innerHTML=`<div class="summary">
+    <div class="big">🔥 ${P.streak.days}</div>
+    <div class="sub">Runde geschafft — ${total} Abrufe. ${dueCount()} Karten als Nächstes fällig.</div>
+    <div class="controls"><button class="btn btn-primary btn-block" id="sumHome">Zur Übersicht</button></div>
+  </div>`;
+  $("#sessPos").textContent=""; $("#sessBar").style.width="100%";
+  $("#sumHome").onclick=goHome;
+}
+
+/* ===================================================================== */
+/* DIALOG-MODUS                                                          */
+/* ===================================================================== */
+let DL=null;
+function startDialog(dlg, afterSession){
+  DL={dlg,i:0,afterSession:!!afterSession};
+  $("#home").classList.add("hidden"); $("#session").classList.add("hidden");
+  $("#dialog").classList.remove("hidden");
+  $("#dlgTitle").textContent=dlg.title; $("#dlgScene").textContent=dlg.scene;
+  $("#dlgTranscript").innerHTML=""; renderDlgLine();
+}
+function renderDlgLine(){
+  const ex=$("#dlgArea"); const {dlg,i}=DL;
+  $("#dlgPos").textContent=(i+1)+"/"+dlg.lines.length;
+  if(i>=dlg.lines.length){ return dialogDone(); }
+  const line=dlg.lines[i]; shiftOn=false;
+  ex.innerHTML=`<div style="margin-top:14px;border:1px dashed var(--key-border);border-radius:13px;padding:13px">
+    <div class="tag-skill">${esc(dlg.roles[line.s])} · übersetzen</div>
+    <div class="prompt-de" style="font-size:18px">${esc(line.de)}</div>
+    <textarea class="answer" rows="2" placeholder="auf Kroatisch…" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    ${keycapsHTML()}
+    <div class="controls"><button class="btn btn-primary" data-check>Prüfen</button>
+      <button class="btn btn-ghost" data-reveal>Lösung</button></div>
+    <div class="fb" data-fb></div></div>`;
+  const ta=ex.querySelector(".answer"); wireKeys(ex,ta); setTimeout(()=>ta.focus(),20);
+  const finish=(res,raw)=>{
+    ta.disabled=true; ex.querySelector("[data-check]").style.display="none"; ex.querySelector("[data-reveal]").style.display="none";
+    const fb=ex.querySelector("[data-fb]"); const sol=line.hr[0];
+    fb.className="fb show "+(res==="ok"?"ok":res==="near"?"near":"no");
+    fb.innerHTML=(res==="ok"?`<span class="t">✓ Točno</span>`:res==="near"?`<span class="t">Fast! ${diagnoseNear(raw,sol)}</span>`:`<span class="t">Lösung</span>`)+`<span class="sol">${esc(sol)}</span>`;
+    if(line.hr.length>1)fb.innerHTML+=`<div class="alt">auch: ${line.hr.slice(1).map(esc).join(" · ")}</div>`;
+    const ctr=document.createElement("div");ctr.className="controls";
+    const nx=document.createElement("button");nx.className="btn btn-primary btn-block";nx.textContent=(i===dlg.lines.length-1)?"Abschließen":"Weiter";
+    nx.onclick=()=>{pushDlg(line);DL.i++;renderDlgLine();};ctr.appendChild(nx);ex.querySelector(".fb").after(ctr);nx.focus();
+  };
+  ex.querySelector("[data-check]").onclick=()=>{const raw=ta.value.trim();if(!raw){ta.focus();return;}finish(matchAns(raw,line.hr),raw);};
+  ta.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();if(!ta.disabled)ex.querySelector("[data-check]").click();}});
+  ex.querySelector("[data-reveal]").onclick=()=>finish("no");
+}
+function pushDlg(line){
+  const t=document.createElement("div");t.className="turn "+line.s;
+  t.style.cssText="max-width:88%;align-self:"+(line.s==="A"?"flex-start":"flex-end");
+  t.innerHTML=`<div style="font:600 11px var(--mono);color:var(--muted);margin:0 0 2px 4px;${line.s==='B'?'text-align:right':''}">${esc(DL.dlg.roles[line.s])}</div>
+    <div style="border-radius:14px;padding:8px 12px;background:${line.s==='A'?'var(--bg2)':'var(--teal-soft)'}">
+      <span style="display:block;color:var(--muted);font-size:11px">${esc(line.de)}</span>
+      <span style="display:block;font-weight:600">${esc(line.hr[0])}</span></div>`;
+  $("#dlgTranscript").appendChild(t);
+}
+function dialogDone(){
+  const ex=$("#dlgArea");
+  if(DL.afterSession){ showSummaryInDialog(); return; }
+  ex.innerHTML=`<div class="summary"><div class="big">✓</div><div class="sub">Dialog „${esc(DL.dlg.title)}“ geschafft.</div>
+    <div class="controls"><button class="btn btn-primary btn-block" id="dlgHome">Zur Übersicht</button></div></div>`;
+  $("#dlgPos").textContent="";
+  $("#dlgHome").onclick=goHome;
+}
+function showSummaryInDialog(){
+  bumpStreak(); persist(); refreshHome();
+  const ex=$("#dlgArea");
+  ex.innerHTML=`<div class="summary"><div class="big">🔥 ${P.streak.days}</div>
+    <div class="sub">Tagesrunde + Dialog geschafft. ${dueCount()} Karten als Nächstes fällig.</div>
+    <div class="controls"><button class="btn btn-primary btn-block" id="dlgHome2">Zur Übersicht</button></div></div>`;
+  $("#dlgPos").textContent="";
+  $("#dlgHome2").onclick=goHome;
+}
+
+/* ===================================================================== */
+/* HOME / NAV                                                            */
+/* ===================================================================== */
+function goHome(){ $("#session").classList.add("hidden");$("#dialog").classList.add("hidden");$("#select").classList.add("hidden");$("#grammar").classList.add("hidden");$("#home").classList.remove("hidden");refreshHome();}
+function refreshHome(){
+  const due=dueCount(), learned=learnedCount(), pct=masteryPct();
+  $("#streakN").textContent=P.streak.days; $("#dueN").textContent=due;
+  $("#sDue").textContent=due; $("#sLearned").textContent=learned;
+  $("#sStreak").textContent=P.streak.days; $("#sTotal").textContent=ITEMS.length;
+  $("#ringPct").textContent=pct+"%";
+  const C=251; $("#ringFill").setAttribute("stroke-dashoffset", C-(C*pct/100));
+  const h=new Date().getHours();
+  $("#greet").textContent = h<11?"Dobro jutro!":h<18?"Dobar dan!":"Dobra večer!";
+  $("#startDaily").textContent = due>0?`Tagesrunde starten · ${due} fällig`:"Tagesrunde starten";
+  $("#newVal").textContent=P.settings.newPerSession;
+  $("#applyToggle").textContent=P.settings.apply?"an":"aus";
+  $("#storageNote").textContent="Fortschritt gespeichert ("+({datei:"Datei",local:"Browser",memory:"nur diese Sitzung"})[Store.info()]+")";
+}
+
+/* Events */
+$("#startDaily").onclick=()=>startSession("daily");
+document.querySelectorAll(".mode").forEach(m=>m.onclick=()=>{
+  const mode=m.dataset.mode;
+  if(mode==="dialog"){startDialog(pickDialog(),false);}
+  else if(mode==="vocab"||mode==="grammar"){openSelect(mode);}
+  else startSession(mode);
+});
+$("#sessExit").onclick=()=>{persist();goHome();};
+$("#dlgExit").onclick=()=>{persist();goHome();};
+$("#openInfo").onclick=()=>$("#infoPanel").classList.toggle("hidden");
+$("#openSettings").onclick=()=>$("#settingsPanel").classList.toggle("hidden");
+$("#newMinus").onclick=()=>{P.settings.newPerSession=Math.max(2,P.settings.newPerSession-2);persist();refreshHome();};
+$("#newPlus").onclick=()=>{P.settings.newPerSession=Math.min(20,P.settings.newPerSession+2);persist();refreshHome();};
+$("#applyToggle").onclick=()=>{P.settings.apply=!P.settings.apply;persist();refreshHome();};
+$("#resetBtn").onclick=async()=>{if(confirm("Wirklich den gesamten Fortschritt löschen?")){await Store.clear();P=freshP();await persist();refreshHome();alert("Zurückgesetzt.");}};
+
+/* Theme-Picker */
+const THEMES=[["","Pergament","#eef0f3","#9b1c2e"],["sepia","Sepia","#efe7da","#a23b2e"],["nacht","Nacht","#15171c","#e0566b"],["ozean","Ozean","#0e1622","#34c0d4"]];
+function applyTheme(t){document.documentElement.setAttribute("data-theme",t||"");}
+function buildThemePop(){const pop=$("#themePop");const cur=(P&&P.settings&&P.settings.theme)||"";
+  pop.innerHTML=THEMES.map(([id,name,bg,ac])=>`<button class="swatch" data-theme="${id}" title="${name}" aria-pressed="${cur===id}" style="background:linear-gradient(135deg,${bg} 55%,${ac} 55%)"></button>`).join("");
+  pop.querySelectorAll(".swatch").forEach(b=>b.onclick=()=>{const t=b.dataset.theme;applyTheme(t);P.settings.theme=t;persist();buildThemePop();$("#themePop").classList.add("hidden");});}
+$("#themeBtn").onclick=()=>{buildThemePop();$("#themePop").classList.toggle("hidden");};
+document.addEventListener("click",e=>{if(!e.target.closest("#themePop")&&!e.target.closest("#themeBtn"))$("#themePop").classList.add("hidden");});
+
+/* Themen-Auswahl (Vokabeln/Grammatik) */
+let SEL={kind:null,keys:new Set()};
+function selOptions(kind){
+  const map={};
+  if(kind==="vocab"){ITEMS.forEach(it=>{if(it.type==="vocab"||it.type==="chunk"){const k=topicOf(it);map[k]=(map[k]||0)+1;}});
+    return VTOPICS.filter(t=>map[t[0]]).map(t=>[t[0],t[1],map[t[0]]]);}
+  ITEMS.forEach(it=>{if(it.type==="fill"){const k=it.tags[0];map[k]=(map[k]||0)+1;}});
+  return GTOPICS.filter(t=>map[t[0]]).map(t=>[t[0],t[1],map[t[0]]]);
+}
+function openSelect(kind){
+  SEL.kind=kind; const opts=selOptions(kind); SEL.keys=new Set(opts.map(o=>o[0]));
+  $("#home").classList.add("hidden"); $("#session").classList.add("hidden"); $("#dialog").classList.add("hidden");
+  $("#select").classList.remove("hidden");
+  $("#selTitle").textContent=kind==="vocab"?"Vokabeln – Themen":"Grammatik – Bereiche";
+  $("#selLede").textContent=kind==="vocab"?"Wähle Themenbereiche – oder übe alle.":"Wähle Grammatik-Bereiche zum Üben.";
+  renderSel(opts); updateSelCount();
+}
+function renderSel(opts){
+  const list=$("#selList");
+  list.innerHTML=opts.map(([k,label,n])=>`<button class="selopt ${SEL.keys.has(k)?'on':''}" data-k="${k}">
+    <span class="selcheck">${SEL.keys.has(k)?'✓':''}</span><span class="sellabel">${esc(label)}</span><span class="selnum">${n}</span></button>`).join("");
+  list.querySelectorAll(".selopt").forEach(b=>b.onclick=()=>{const k=b.dataset.k;
+    if(SEL.keys.has(k))SEL.keys.delete(k);else SEL.keys.add(k);renderSel(opts);updateSelCount();});
+}
+function updateSelCount(){
+  let n=0; const keys=SEL.keys;
+  if(SEL.kind==="vocab")ITEMS.forEach(it=>{if((it.type==="vocab"||it.type==="chunk")&&keys.has(topicOf(it)))n++;});
+  else ITEMS.forEach(it=>{if(it.type==="fill"&&keys.has(it.tags[0]))n++;});
+  $("#selCount").textContent=n+(SEL.kind==="vocab"?" Wörter":" Aufgaben");
+  $("#selStart").disabled=(n===0);
+}
+$("#selAll").onclick=()=>{const opts=selOptions(SEL.kind);SEL.keys=new Set(opts.map(o=>o[0]));renderSel(opts);updateSelCount();};
+$("#selStart").onclick=()=>{const keys=SEL.keys;
+  const filter=SEL.kind==="vocab"
+    ? (it=>(it.type==="vocab"||it.type==="chunk")&&keys.has(topicOf(it)))
+    : (it=>it.type==="fill"&&keys.has(it.tags[0]));
+  startSession(SEL.kind,filter,SEL.kind==="vocab"?"Vokabeln":"Grammatik");
+};
+$("#selExit").onclick=goHome;
+
+/* ===================================================================== */
+/* GRAMMATIK-DATENBANK (Render + Navigation)                            */
+/* ===================================================================== */
+function caseRoleHTML(key){const k=CASES[key];if(!k)return "";
+  return '<div class="caserole"><b>'+esc(k.n)+'</b><br>Rolle: '+esc(k.role)+'<br>Auslöser: '+esc(k.trig)+'</div>';}
+function contrastTableHTML(key){const c=CONTRAST[key];if(!c)return "";
+  var rows=c.rows.map(function(r){return '<div class="gcrow"><div class="gcform">'+r[0]+'</div><div class="gcrole">'+r[1]+'<span class="ex">'+r[2]+'</span></div></div>';}).join("");
+  return '<div class="gcontrast"><h4>'+c.title+'</h4><div class="gcs">'+esc(c.sub)+'</div>'+rows+(c.rule?'<div class="gcrule">→ '+c.rule+'</div>':'')+'</div>';}
+function grammarBlockHTML(b){
+  switch(b[0]){
+    case "p":       return '<div class="gblock"><p class="gp">'+b[1]+'</p></div>';
+    case "formula": return '<div class="gblock"><code class="gformula">'+esc(b[1])+'</code></div>';
+    case "case":    return '<div class="gblock">'+caseRoleHTML(b[1])+'</div>';
+    case "conj":    return '<div class="gblock">'+conjTable(b[1])+'</div>';
+    case "contrast":return '<div class="gblock">'+contrastTableHTML(b[1])+'</div>';
+    case "table":{
+      var caption=b[1],rows=b[2],head=b[3];
+      var thead=head?'<tr>'+head.map(function(h){return '<th>'+esc(h)+'</th>';}).join("")+'</tr>':"";
+      var body=rows.map(function(r){return '<tr>'+r.map(function(cell){return '<td>'+cell+'</td>';}).join("")+'</tr>';}).join("");
+      return '<div class="gblock"><table class="gtable">'+(caption?'<caption>'+esc(caption)+'</caption>':"")+thead+body+'</table></div>';}
+  }
+  return "";
+}
+function grammarSectionById(id){return GRAMMAR.filter(function(g){return g.id===id;})[0];}
+let gReturn=null;
+function openGrammar(focusId,ret){
+  gReturn=ret||null;
+  $("#home").classList.add("hidden");$("#session").classList.add("hidden");$("#dialog").classList.add("hidden");$("#select").classList.add("hidden");
+  $("#grammar").classList.remove("hidden");
+  if(focusId&&grammarSectionById(focusId))renderGrammarSection(focusId);else renderGrammarList();
+}
+function renderGrammarList(){
+  $("#gTitle").textContent="Grammatik-Datenbank";
+  $("#gLede").textContent="Nachschlagewerk — Grammatik als Lookup, Formel und Tabelle. Tippe einen Bereich an.";
+  $("#gPos").textContent=GRAMMAR.length+" Bereiche";
+  $("#gBody").innerHTML='<div class="glist">'+GRAMMAR.map(function(g){
+    return '<button class="gsec-btn" data-g="'+g.id+'"><span class="gic">'+g.icon+'</span><span><span class="gt">'+esc(g.title)+'</span><br><span class="gd">'+esc(g.sub)+'</span></span></button>';
+  }).join("")+'</div>';
+  $("#gBody").querySelectorAll(".gsec-btn").forEach(function(b){b.onclick=function(){renderGrammarSection(b.dataset.g);};});
+}
+function renderGrammarSection(id){
+  var g=grammarSectionById(id);if(!g)return renderGrammarList();
+  $("#gTitle").textContent=g.icon+" "+g.title; $("#gLede").textContent=g.sub; $("#gPos").textContent="";
+  var html='<div class="explainbox" style="margin-top:6px">'+g.blocks.map(grammarBlockHTML).join("")+'</div>';
+  html+='<div class="controls" style="margin-top:12px"><button class="btn btn-ghost btn-block" id="gBack">← Alle Bereiche</button></div>';
+  $("#gBody").innerHTML=html;
+  $("#gBack").onclick=renderGrammarList;
+}
+$("#gExit").onclick=()=>{ if(gReturn){const r=gReturn;gReturn=null;r();}else goHome(); };
+$("#openGrammar").onclick=function(){openGrammar();};
+
+/* ===================================================================== */
+/* EXPORT / IMPORT / DIAGNOSE                                            */
+/* ===================================================================== */
+function showIO(text,ph){const ta=$("#ioArea");ta.classList.remove("hidden");$("#ioControls").classList.remove("hidden");
+  ta.value=text;if(ph)ta.placeholder=ph;ta.focus();if(text)ta.select();}
+$("#exportBtn").onclick=()=>showIO(JSON.stringify(P));
+$("#importBtn").onclick=()=>showIO("","JSON hier einfügen und „Übernehmen“ tippen.");
+$("#ioClose").onclick=()=>{$("#ioArea").classList.add("hidden");$("#ioControls").classList.add("hidden");};
+$("#ioApply").onclick=async()=>{
+  const raw=$("#ioArea").value.trim(); if(!raw)return;
+  let obj; try{obj=JSON.parse(raw);}catch(e){alert("Das ist kein gültiges JSON.");return;}
+  if(!obj||typeof obj!=="object"||!obj.srs){alert("Das sieht nicht nach einem Fortschritt aus (kein srs-Feld).");return;}
+  P=migrateP(obj); await persist(); $("#ioClose").click(); refreshHome(); alert("Fortschritt übernommen.");
+};
+$("#diagBtn").onclick=()=>{const p=$("#diagPanel");
+  if(p.classList.contains("hidden")){p.innerHTML=diagHTML();p.classList.remove("hidden");}else p.classList.add("hidden");};
+
+
+/* ===================================================================== */
+/* DIAGNOSE / DATEN-SELBSTTEST                                           */
+/* ===================================================================== */
+let DIAG={errors:[],warns:[],counts:{}};
+function validateData(){
+  const errors=[],warns=[]; const ids=new Map();
+  const gset=new Set(GTOPICS.map(t=>t[0]));
+  ITEMS.forEach(it=>{
+    if(ids.has(it.id))errors.push("Doppelte ID: "+it.id); ids.set(it.id,it);
+    if(!it.de||!String(it.de).trim())errors.push("Leeres DE: "+it.id);
+    if(!it.hr||!it.hr[0]||!String(it.hr[0]).trim())errors.push("Leeres HR: "+it.id);
+    if(it.type==="fill"){
+      if(!/___/.test(it.sentence||""))errors.push("fill ohne ___: "+it.id);
+      if(!gset.has(it.tags[0]))errors.push("fill unbekannte Kategorie: "+it.id+" ("+it.tags[0]+")");
+      if(it.verb&&!CONJ[it.verb])errors.push("fill unbekannter verbKey: "+it.id+" ("+it.verb+")");
+    }
+    if(it.type==="vocab"&&it.g&&["m","f","n"].indexOf(it.g)<0)errors.push("Ungültiges Genus: "+it.id+" ("+it.g+")");
+  });
+  Object.keys(EXPL).forEach(id=>{if(!ids.has(id))errors.push("EXPL→fehlende ID: "+id);});
+  Object.keys(TOPIC_OVERRIDE).forEach(id=>{if(!ids.has(id))warns.push("TOPIC_OVERRIDE→fehlende ID: "+id);});
+  const dseen=new Set();
+  DIALOGS.forEach(d=>{
+    if(dseen.has(d.id))errors.push("Doppelte Dialog-ID: "+d.id); dseen.add(d.id);
+    if(!d.lines||!d.lines.length)errors.push("Dialog ohne Zeilen: "+d.id);
+    (d.lines||[]).forEach((l,i)=>{if(!l.hr||!l.hr[0])errors.push("Dialogzeile ohne HR: "+d.id+" #"+i);});
+  });
+  const counts={total:ITEMS.length,vocab:0,chunk:0,fill:0,dialoge:DIALOGS.length};
+  ITEMS.forEach(it=>counts[it.type]++);
+  DIAG={errors,warns,counts};
+  if(errors.length)console.error("[Hrvatski A1] Validierung:",errors.length,"Fehler",errors);
+  else console.log("[Hrvatski A1] Validierung OK –",counts.total,"Items,",counts.dialoge,"Dialoge",
+                   warns.length?("("+warns.length+" Hinweise)"):"");
+  return DIAG;
+}
+function diagHTML(){
+  const d=DIAG; let h="";
+  h+='<p style="font-size:12.5px;color:var(--ink2)">Items: <b>'+d.counts.total+'</b> ('+d.counts.vocab+' Vokabeln · '+d.counts.chunk+' Wendungen · '+d.counts.fill+' Grammatik) · Dialoge: <b>'+d.counts.dialoge+'</b></p>';
+  if(!d.errors.length&&!d.warns.length){h+='<p style="color:var(--green)">✓ Keine Probleme gefunden.</p>';}
+  if(d.errors.length){h+='<p style="color:var(--brand);font-weight:700">'+d.errors.length+' Fehler</p><ul style="padding-left:18px">'+d.errors.slice(0,30).map(e=>"<li>"+esc(e)+"</li>").join("")+"</ul>";}
+  if(d.warns.length){h+='<p style="color:var(--amber);font-weight:700">'+d.warns.length+' Hinweise</p><ul style="padding-left:18px">'+d.warns.slice(0,30).map(e=>"<li>"+esc(e)+"</li>").join("")+"</ul>";}
+  return h;
+}
+
+/* Init */
+(async()=>{
+  P=await Store.load(); if(!P||!P.srs){P=freshP();await persist();}
+  P=migrateP(P);                         // sanfte Aufwärtsmigration (idempotent)
+  applyTheme(P.settings.theme);
+  validateData();                        // Diagnose früh beim Laden (nur Konsole/Panel)
+  refreshHome();
+})();
+</script>
+</body>
+</html>
